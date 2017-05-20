@@ -1,0 +1,7 @@
+type GreetingQuery {
+  hello: String!
+}
+
+type Query {
+  greetings: GreetingQuery
+}

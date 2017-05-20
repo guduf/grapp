@@ -1,0 +1,10 @@
+dist/
+node_modules/
+src/**/*.d.ts
+src/**/*.js
+src/**/*.map
+example/**/*.d.ts
+example/**/*.js
+example/**/*.map
+
+yarn.lock
