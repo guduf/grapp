@@ -5,17 +5,21 @@ import { InjectionToken, Injector, Provider, ReflectiveInjector } from './di';
 import { getGrappMeta, GrappMeta } from './grapp';
 import { GrappRef } from './grapp_ref';
 
-export async function bootstrapGrapp(metaGrapp: any): Promise<graphqlHTTP.Middleware> {
-  const app = express();
-  const meta = getGrappMeta(metaGrapp);
-  if (!meta) {
-    const message = 'The module has not been decorated with Grapp decorator';
+export async function bootstrapGrapp(grapp: any): Promise<graphqlHTTP.Middleware> {
+  if (!grapp) {
+    const message = 'The grapp passed as argument is null';
     return Promise.reject(new TypeError(message));
   }
+  const meta = getGrappMeta(grapp);
+  if (!meta) {
+    const message = 'The grapp passed as argument has not been decorated with @Grapp';
+    return Promise.reject(new TypeError(message));
+  }
+  const app = express();
   const rootInjector = createCoreInjector();
   let grappRef: GrappRef;
   try { grappRef = new GrappRef(rootInjector, meta); }
-  catch (err) { console.error(err); }
+  catch (err) { return Promise.reject(err); }
   const [schema, rootValue] = grappRef.build();
   return Promise.resolve(graphqlHTTP({schema, rootValue, graphiql: true}));
 }
@@ -34,7 +38,7 @@ export class TypeTokenStore {
   }
 }
 
-function createCoreInjector(): Injector {
+export function createCoreInjector(): Injector {
   const coreProviders: Provider[] = [
     {provide: TypeTokenStore, useClass: TypeTokenStore}
   ];

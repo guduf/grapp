@@ -27,7 +27,6 @@ export class GrappRef {
   get injector() { return this._injector; }
   get mutations() { return this._definition.mutations; }
   get queries() { return this._definition.queries; }
-  get rootValue() { return this._rootValue; }
   get types() { return this._definition.types; }
   private _injector: Injector;
   private _definition: GrappDefinition;

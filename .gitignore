@@ -1,10 +1,15 @@
 dist/
 node_modules/
-src/**/*.d.ts
-src/**/*.js
-src/**/*.map
+packages/**/src/**/*.d.ts
+packages/**/src/**/*.js
+packages/**/src/**/*.map
+packages/**/out-tsc
 example/**/*.d.ts
 example/**/*.js
 example/**/*.map
 
 yarn.lock
+
+# Tests
+.nyc_output/
+coverage/

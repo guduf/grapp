@@ -2,14 +2,20 @@ import * as express from 'express';
 
 import { Grapp, Type, bootstrapGrapp } from '../dist/core';
 
+class NameService {
+  getRandomName() {  return ['Paul', 'John', 'Peter'][Math.ceil(Math.random() * 3 - 1)]; }
+}
+
 @Type({})
 class GreetingQuery {
-  hello() { return 'hello world'; }
+  constructor(private nameService: NameService) { }
+  hello() { return `Hello ${this.nameService.getRandomName()}!`; }
 }
 
 @Grapp({
   schemaUrl: 'schema.gql',
-  types: [GreetingQuery]
+  types: [GreetingQuery],
+  providers: [NameService]
 })
 class AppGrapp { }
 

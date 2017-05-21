@@ -17,9 +17,7 @@ export interface GrappMeta extends GrappParams {
 }
 
 export function Grapp(params: GrappParams, filename?: string): ClassDecorator {
-  if (!filename)
-    try { filename = stackTrace()[1].getFileName(); }
-    catch (err) { console.error(err); }
+  if (!filename) filename = stackTrace()[1].getFileName();
   return function GrappDecorator(grappCtor: any) {
     const grappMeta: GrappMeta = {...params, filename};
     Reflect.defineMetadata(GRAPP_META_TOKEN, grappMeta, grappCtor);
