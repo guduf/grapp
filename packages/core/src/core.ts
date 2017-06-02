@@ -1,5 +1,3 @@
-import * as graphqlHTTP from 'express-graphql';
-
 import { InjectionToken, Injector, Provider, ReflectiveInjector } from './di';
 import { getGrappMeta, GrappMeta } from './grapp';
 import { GrappRef } from './grapp_ref';
