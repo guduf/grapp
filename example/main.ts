@@ -1,4 +1,6 @@
+import { json } from 'body-parser';
 import * as express from 'express';
+import { graphqlExpress, graphiqlExpress } from 'graphql-server-express';
 
 import { Grapp, Type, bootstrapGrapp } from '../dist/core';
 
@@ -19,8 +21,11 @@ class GreetingQuery {
 })
 class AppGrapp { }
 
-bootstrapGrapp(AppGrapp).then(middleware => {
+bootstrapGrapp(AppGrapp).then(data => {
   const app = express();
-  app.use('/graphql', middleware);
-  app.listen(4000, () => {console.log('listen')});
+  app.use('/graphql', json(), graphqlExpress(data));
+  app.use('/graphiql', graphiqlExpress({
+    endpointURL: '/graphql',
+  }));
+  app.listen(3000, () => console.log('listen on 3000'))
 });

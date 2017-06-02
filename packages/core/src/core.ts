@@ -1,11 +1,16 @@
-import * as express from 'express';
 import * as graphqlHTTP from 'express-graphql';
 
 import { InjectionToken, Injector, Provider, ReflectiveInjector } from './di';
 import { getGrappMeta, GrappMeta } from './grapp';
 import { GrappRef } from './grapp_ref';
+import { GraphQLSchema } from 'graphql';
 
-export async function bootstrapGrapp(grapp: any): Promise<graphqlHTTP.Middleware> {
+export interface GrappData {
+  schema: GraphQLSchema
+  rootValue: { [key: string]: any }
+}
+
+export async function bootstrapGrapp(grapp: any): Promise<GrappData> {
   if (!grapp) {
     const message = 'The grapp passed as argument is null';
     return Promise.reject(new TypeError(message));
@@ -15,13 +20,12 @@ export async function bootstrapGrapp(grapp: any): Promise<graphqlHTTP.Middleware
     const message = 'The grapp passed as argument has not been decorated with @Grapp';
     return Promise.reject(new TypeError(message));
   }
-  const app = express();
   const rootInjector = createCoreInjector();
   let grappRef: GrappRef;
   try { grappRef = new GrappRef(rootInjector, meta); }
   catch (err) { return Promise.reject(err); }
   const [schema, rootValue] = grappRef.build();
-  return Promise.resolve(graphqlHTTP({schema, rootValue, graphiql: true}));
+  return Promise.resolve<GrappData>({schema, rootValue});
 }
 
 export class TypeTokenStore {
