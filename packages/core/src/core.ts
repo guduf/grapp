@@ -8,7 +8,9 @@ export interface GrappData {
   rootValue: { [key: string]: any }
 }
 
-export async function bootstrapGrapp(grapp: any): Promise<GrappData> {
+export async function bootstrapGrapp(
+  grapp: any, extraProviders?: Provider[]
+): Promise<GrappData> {
   if (!grapp) {
     const message = 'The grapp passed as argument is null';
     return Promise.reject(new TypeError(message));
@@ -18,9 +20,12 @@ export async function bootstrapGrapp(grapp: any): Promise<GrappData> {
     const message = 'The grapp passed as argument has not been decorated with @Grapp';
     return Promise.reject(new TypeError(message));
   }
-  const rootInjector = createCoreInjector();
+  const coreInjector = createCoreInjector();
+  const rootInjector = extraProviders ?
+    ReflectiveInjector.resolveAndCreate(extraProviders, coreInjector) :
+    undefined;
   let grappRef: GrappRef;
-  try { grappRef = new GrappRef(rootInjector, meta); }
+  try { grappRef = new GrappRef(rootInjector || coreInjector, meta); }
   catch (err) { return Promise.reject(err); }
   const [schema, rootValue] = grappRef.build();
   return Promise.resolve<GrappData>({schema, rootValue});
