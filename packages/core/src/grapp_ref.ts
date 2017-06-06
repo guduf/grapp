@@ -5,6 +5,7 @@ import {
   DocumentNode,
   FieldDefinitionNode,
   GraphQLSchema,
+  GraphQLResolveInfo,
   ObjectTypeDefinitionNode,
   parse,
   print
@@ -71,13 +72,20 @@ export class GrappRef {
       const operations = this[opeName];
       if (!operations || !operations.length) return;
       const fields = operations.map(field => {
-        const selector =
-          (opeName === 'queries' ? 'Query': 'Mutation') +
-          `:${(<FieldDefinitionNode>field).name.value}`;
-        const instance: IOperation = this._operations.get(selector);
-        if (!instance) throw new Error('Operation not found with this selector: ' + selector);
-        rootValue[field.name.value] = function resolveOperation(args, context, info) {
-          return instance.resolve(args, context, info);
+        if (rootValue[field.name.value]) return field;
+        rootValue[field.name.value] = (
+          args: any, context: any, info: GraphQLResolveInfo
+        ) => {
+          let ope: IOperation;
+          if (info.parentType === info.schema.getQueryType()) {
+            ope = this._operations.get('Query:' + (<FieldDefinitionNode>field).name.value)
+          } else if (info.parentType === info.schema.getMutationType()) {
+            ope = this._operations.get('Mutation:' + (<FieldDefinitionNode>field).name.value)
+          } else {
+            throw new Error('Invalid parent type for operations');
+          }
+          if (!ope || !ope.resolve) throw new Error('Invalid operation');
+          return ope.resolve(args, context, info);
         }
         return field;
       });
