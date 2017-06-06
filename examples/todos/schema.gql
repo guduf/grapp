@@ -1,0 +1,28 @@
+type Author {
+  id: ID!
+  name: String!
+  todos: [Todo]!
+}
+
+type Todo {
+  id: ID!
+  author: Author
+  text: String!
+  completed: Boolean!
+}
+
+type TodoMutation {
+  create(text: String!): Todo!
+  complete(id: ID!): Todo!
+  remove(id: ID!): Boolean!
+}
+
+type Query {
+  me: Author!
+  authors: [Author]!
+  todos(authorId: ID): [Todo]!
+}
+
+type Mutation {
+  me: TodoMutation!
+}

@@ -2,7 +2,6 @@ export {
   Inject,
   Injectable,
   InjectionToken,
-  Injector,
   Provider,
-  ReflectiveInjector
+  ReflectiveInjector as Injector
 } from '@angular/core';

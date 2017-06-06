@@ -2,14 +2,16 @@ import 'reflect-metadata';
 import { get as stackTrace } from 'stack-trace';
 
 import { Provider } from './di';
+import { TypeTarget } from './type';
 
 const GRAPP_META_TOKEN = 'grapp:module'
 
 export interface GrappParams {
-  schema?: string
-  schemaUrl?: string
-  types: any[]
-  providers?: Provider[]
+  schema?: string;
+  schemaUrl?: string;
+  operations?: any[];
+  types?: TypeTarget[];
+  providers?: Provider[];
 }
 
 export interface GrappMeta extends GrappParams {

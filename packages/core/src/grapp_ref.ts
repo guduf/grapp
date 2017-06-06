@@ -11,9 +11,14 @@ import {
   print
 } from 'graphql';
 import { join } from 'path';
-import { InjectionToken, Injector, Provider, ReflectiveInjector } from './di';
-import { getTypeMeta } from './type';
-import { TypeRef } from './type_ref';
+import { InjectionToken, Provider, Injector } from './di';
+import {
+  getTypeMeta,
+  TYPE_BUILDER_INJECTION_PREFIX,
+  TYPE_PAYLOAD_TOKEN,
+  TypeTarget
+} from './type';
+import { getOperationMeta, IOperation } from './operation';
 import { GrappMeta } from './grapp';
 import { TypeTokenStore } from './core';
 
@@ -24,30 +29,42 @@ export interface GrappDefinition {
 }
 
 export class GrappRef {
-  get injector() { return this._injector; }
-  get mutations() { return this._definition.mutations; }
   get queries() { return this._definition.queries; }
   get types() { return this._definition.types; }
   private _injector: Injector;
   private _definition: GrappDefinition;
+  private _operations: Map<string, any>;
   private _rootValue : { [key: string]: any }
   constructor(rootInjector: Injector, meta: GrappMeta) {
-    const preProviders: Provider[] = [];
-    if (meta.providers) preProviders.push(...meta.providers);
-    const preInjector = ReflectiveInjector.resolveAndCreate(preProviders, rootInjector);
     const typeTokenStore = rootInjector.get(TypeTokenStore);
-    const providers = [];
-    const typesRefs = new Map<InjectionToken<string>, TypeRef>();
-    for (const typeCtor of meta.types) {
-      let typeRef: TypeRef;
-      const typeMeta = getTypeMeta(typeCtor);
-      try { typeRef = new TypeRef(preInjector, typeCtor, typeMeta); }
-      catch (err) { console.error(err); }
-      const typeToken = typeTokenStore.create(typeMeta.selector);
-      providers.push({provide: typeToken, useValue: typeRef.instance});
+    const providers: Provider[] = [...(meta.providers || [])];
+    for (const target of (meta.types || [])) {
+      const meta = getTypeMeta(target);
+      if (!meta) throw new Error('Cannot found type meta');
+      const token = typeTokenStore.create(meta.selector);
+      const typeBuilder = (payload?: any) => this._buildType(target, payload);
+      providers.push({
+        provide: TYPE_BUILDER_INJECTION_PREFIX + meta.selector,
+        useValue: typeBuilder
+      });
     }
-    this._injector = ReflectiveInjector.resolveAndCreate(providers, preInjector);
+    this._injector = Injector.resolveAndCreate(providers, rootInjector);
+    const operations = new Map<string, any>();
+    for (const target of meta.operations) {
+      const meta = getOperationMeta(target);
+      if (!meta) throw new Error('Cannot found operation meta');
+      const instance: IOperation = this._injector.resolveAndInstantiate(target);
+      if (!instance || !instance.resolve) throw new Error('The operation instance doesn’t have resolve method');
+      operations.set(meta.selector, instance);
+    }
+    this._operations = operations;
     this._definition = this.parseDefinition(meta);
+    // try { typeRef = new TypeRef(preInjector, typeTarget, typeMeta); }
+    // catch (err) { console.error(err); }
+    // const typeToken = typeTokenStore.create(typeMeta.selector);
+    // providers.push({provide: typeToken, useValue: typeRef.instance});
+    // this._injector = Injector.resolveAndCreate(providers, preInjector);
+    // this._definition = this.parseDefinition(meta);
   }
   build(): [GraphQLSchema, { [key: string]: any }] {
     const docNode: DocumentNode = {
@@ -60,11 +77,12 @@ export class GrappRef {
       const operations = this[opeName];
       if (!operations || !operations.length) return;
       const fields = operations.map(field => {
-        if (field.type.kind !== 'NamedType') throw new TypeError('Query is not NamedType');
-        const name = (<NamedTypeNode>field.type).name.value;
-        const typeTokenStore = this._injector.get(TypeTokenStore);
-        const instance = this.injector.get(typeTokenStore.get(name));
-        rootValue[field.name.value] = instance;
+        const selector = (<NamedTypeNode>field).name.value;
+        const instance: IOperation = this._operations.get(selector);
+        if (!instance) throw new Error('Operation not found with this selector: ' + selector);
+        rootValue[field.name.value] = function resolveOperation(args, context, info) {
+          return instance.resolve(args, context, info);
+        }
         return field;
       });
       const opeDefinition: ObjectTypeDefinitionNode = {
@@ -97,5 +115,12 @@ export class GrappRef {
       return types.push(def);
     });
     return {types, queries, mutations};
+  }
+  private _buildType(target: TypeTarget, payload: any): any {
+    let injector: Injector = this._injector;
+    if (payload) injector = this._injector.resolveAndCreateChild([{
+      provide: TYPE_PAYLOAD_TOKEN, useValue: payload
+    }]);
+    return injector.resolveAndInstantiate(target);
   }
 }

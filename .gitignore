@@ -4,9 +4,11 @@ packages/**/src/**/*.d.ts
 packages/**/src/**/*.js
 packages/**/src/**/*.map
 packages/**/out-tsc
-example/**/*.d.ts
-example/**/*.js
-example/**/*.map
+examples/**/*.d.ts
+examples/**/*.js
+examples/**/*.map
+examples/**/node_modules
+
 
 yarn.lock
 

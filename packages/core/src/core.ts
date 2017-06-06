@@ -1,4 +1,4 @@
-import { InjectionToken, Injector, Provider, ReflectiveInjector } from './di';
+import { InjectionToken, Injector, Provider } from './di';
 import { getGrappMeta, GrappMeta } from './grapp';
 import { GrappRef } from './grapp_ref';
 import { GraphQLSchema } from 'graphql';
@@ -22,7 +22,7 @@ export async function bootstrapGrapp(
   }
   const coreInjector = createCoreInjector();
   const rootInjector = extraProviders ?
-    ReflectiveInjector.resolveAndCreate(extraProviders, coreInjector) :
+    Injector.resolveAndCreate(extraProviders, coreInjector) :
     undefined;
   let grappRef: GrappRef;
   try { grappRef = new GrappRef(rootInjector || coreInjector, meta); }
@@ -49,5 +49,5 @@ export function createCoreInjector(): Injector {
   const coreProviders: Provider[] = [
     {provide: TypeTokenStore, useClass: TypeTokenStore}
   ];
-  return ReflectiveInjector.resolveAndCreate(coreProviders);
+  return Injector.resolveAndCreate(coreProviders);
 }

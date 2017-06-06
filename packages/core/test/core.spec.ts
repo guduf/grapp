@@ -4,20 +4,18 @@ import * as chaiAsPromised from 'chai-as-promised';
 chai.use(chaiAsPromised);
 chai.should();
 
-import { Grapp, Type } from '../src/';
+import { Grapp } from '../src/grapp';
+import { Query } from '../src/operation';
 import { bootstrapGrapp, TypeTokenStore } from '../src/core';
 
 describe('bootstrapGrapp()', function() {
-  @Type({})
-  class GreetingQuery {
-    hello() { return 'hello world'; }
+  @Query()
+  class GreetingsQuery {
+    resolve() { return 'hello world'; }
   }
   const schema = `
-    type GreetingQuery {
-      hello: String!
-    }
     type Query {
-      greetings: GreetingQuery
+      greetings: String!
     }
   `;
   it('should reject if no arg is passed', function() {
@@ -27,14 +25,9 @@ describe('bootstrapGrapp()', function() {
     return bootstrapGrapp(Date).should.be.rejectedWith(TypeError);
   });
   it('should return middleware', function() {
-    @Grapp({schema, types: [GreetingQuery]})
+    @Grapp({schema, operations: [GreetingsQuery]})
     class AppGrapp { }
-    return bootstrapGrapp(AppGrapp).should.eventually.be.a('function');
-  });
-  it('should reject when GrappRef construction failed', function() {
-    @Grapp(<any>{})
-    class AppGrapp { }
-    return bootstrapGrapp(AppGrapp).should.be.rejectedWith(Error);
+    return bootstrapGrapp(AppGrapp).should.eventually.be.a('object');
   });
 });
 
