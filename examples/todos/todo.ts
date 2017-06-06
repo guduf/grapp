@@ -35,7 +35,7 @@ export class TodoService extends Map<string, Todo> {
   }
   create(text: string, authorId?: string): Todo {
     const todo = {id: this.generateId(), text, authorId, completed: false};
-    this.set(todo.id, todo);
+    this.set(todo.id, new Todo(todo));
     return todo;
   }
 
@@ -44,7 +44,7 @@ export class TodoService extends Map<string, Todo> {
     let round = 0;
     while (!id) {
       const _id = ('todo' + Math.random()).replace('0.', '');
-      if (this.has(_id)) id = _id;
+      if (!this.has(_id)) id = _id;
       if (round++ > 10) throw new Error('generateId fail');
     }
     return id;

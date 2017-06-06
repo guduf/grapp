@@ -5,7 +5,6 @@ import {
   DocumentNode,
   FieldDefinitionNode,
   GraphQLSchema,
-  NamedTypeNode,
   ObjectTypeDefinitionNode,
   parse,
   print
@@ -30,6 +29,7 @@ export interface GrappDefinition {
 
 export class GrappRef {
   get queries() { return this._definition.queries; }
+  get mutations() { return this._definition.mutations; }
   get types() { return this._definition.types; }
   private _injector: Injector;
   private _definition: GrappDefinition;
@@ -55,16 +55,10 @@ export class GrappRef {
       if (!meta) throw new Error('Cannot found operation meta');
       const instance: IOperation = this._injector.resolveAndInstantiate(target);
       if (!instance || !instance.resolve) throw new Error('The operation instance doesn’t have resolve method');
-      operations.set(meta.selector, instance);
+      operations.set(`${meta.opeType}:${meta.selector}`, instance);
     }
     this._operations = operations;
     this._definition = this.parseDefinition(meta);
-    // try { typeRef = new TypeRef(preInjector, typeTarget, typeMeta); }
-    // catch (err) { console.error(err); }
-    // const typeToken = typeTokenStore.create(typeMeta.selector);
-    // providers.push({provide: typeToken, useValue: typeRef.instance});
-    // this._injector = Injector.resolveAndCreate(providers, preInjector);
-    // this._definition = this.parseDefinition(meta);
   }
   build(): [GraphQLSchema, { [key: string]: any }] {
     const docNode: DocumentNode = {
@@ -77,7 +71,9 @@ export class GrappRef {
       const operations = this[opeName];
       if (!operations || !operations.length) return;
       const fields = operations.map(field => {
-        const selector = (<NamedTypeNode>field).name.value;
+        const selector =
+          (opeName === 'queries' ? 'Query': 'Mutation') +
+          `:${(<FieldDefinitionNode>field).name.value}`;
         const instance: IOperation = this._operations.get(selector);
         if (!instance) throw new Error('Operation not found with this selector: ' + selector);
         rootValue[field.name.value] = function resolveOperation(args, context, info) {

@@ -7,10 +7,13 @@ import {
   Grapp,
   ITypeBuilder,
   TypeBuilder,
-  Query
+  Query,
+  Mutation,
+  TypePayload,
+  Type
 } from '../../dist/core';
 import { AuthorType, AuthorService } from './author';
-import { TodoType, TodoService } from './todo';
+import { TodoType, TodoService, Todo } from './todo';
 
 interface Context { userId: string; }
 
@@ -47,21 +50,59 @@ class TodoQuery {
   }
 }
 
+@Type()
+export class TodoMutationsType {
+  private _authorId: string;
+  constructor(
+    private _service: TodoService,
+    @TypePayload() payload?: {authorId: string}
+  ) {
+    if (payload && payload.authorId) this._authorId = payload.authorId;
+  }
+  create({text}: {text: string}): Todo {
+    const todo = this._service.create(text, this._authorId);
+    return todo;
+  }
+  complete({id}, {id: string}) {
+    const todo = this._service.get(id);
+    if (!todo) throw new Error('Todo not found');
+    todo.completed = true;
+    this._service.set(todo.id, todo);
+    return todo;
+  }
+  remove({id}, {id: string}) {
+    const todo = this._service.get(id);
+    if (!todo) throw new Error('Todo not found');
+    this._service.delete(todo.id);
+    return true;
+  }
+}
+
+@Mutation()
+class TodosMutation {
+  constructor(
+    private _service: TodoService,
+    @TypeBuilder('TodoMutations')
+    private _todoMutationsBuilder: ITypeBuilder<TodosMutation>
+  ) { }
+  resolve(args: any, {userId}: {userId: string}) {
+    return this._todoMutationsBuilder({authorId: userId})
+  }
+}
+
 @Grapp({
   schemaUrl: 'schema.gql',
-  operations: [MeQuery, AuthorsQuery, TodoQuery],
-  types: [AuthorType, TodoType],
+  operations: [MeQuery, AuthorsQuery, TodoQuery, TodosMutation],
+  types: [AuthorType, TodoType, TodoMutationsType],
   providers: [AuthorService, TodoService]
 })
 class AppGrapp { }
 
 bootstrapGrapp(AppGrapp).then(
   data => {
-      const app = express();
-      app.use('/graphql', json(), (req, res, next) => {
-      const context: { [key: string]: any } = {
-        userId: req.query['user']
-      };
+    const app = express();
+    app.use('/graphql', json(), (req, res, next) => {
+      const context: { [key: string]: any } = {userId: req.query['user']};
       graphqlExpress({...data, context})(req, res, next);
     });
     app.use('/graphiql', graphiqlExpress({endpointURL: '/graphql'}));
