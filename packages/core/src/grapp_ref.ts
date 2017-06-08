@@ -84,8 +84,11 @@ export class GrappRef {
           } else {
             throw new Error('Invalid parent type for operations');
           }
-          if (!ope || !ope.resolve) throw new Error('Invalid operation');
-          return ope.resolve(args, context, info);
+          if (!ope || !ope.resolve) {
+            console.error('Invalid operation', info.parentType, field.name.value)
+            throw new Error('Invalid operation');
+          }
+          return ope.resolve.call(ope, args, context, info);
         }
         return field;
       });
