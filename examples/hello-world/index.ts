@@ -11,7 +11,7 @@ class NameService {
 @Query()
 class GreetingsQuery {
   constructor(private nameService: NameService) { }
-  resolve() { return `Hello ${this.nameService.getRandomName()}!`; }
+  query() { return `Hello ${this.nameService.getRandomName()}!`; }
 }
 
 @Grapp({

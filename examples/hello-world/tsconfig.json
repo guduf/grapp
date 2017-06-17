@@ -2,7 +2,7 @@
   "compileOnSave": false,
   "compilerOptions": {
     "sourceMap": true,
-    "declaration": true,
+    "declaration": false,
     "module": "commonjs",
     "moduleResolution": "node",
     "emitDecoratorMetadata": true,
@@ -13,6 +13,6 @@
     ]
   },
   "include": [
-    "main.ts"
+    "index.ts"
   ]
 }

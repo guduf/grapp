@@ -1,7 +1,7 @@
 import { InjectionToken, Injector, Provider } from './di';
 import { getGrappMeta, GrappMeta } from './grapp';
 import { GrappRef } from './grapp_ref';
-import { GraphQLSchema } from 'graphql';
+import { GraphQLSchema, GraphQLTypeResolver as Resolver } from 'graphql';
 
 export interface GrappData {
   schema: GraphQLSchema
@@ -28,26 +28,13 @@ export async function bootstrapGrapp(
   try { grappRef = new GrappRef(rootInjector || coreInjector, meta); }
   catch (err) { return Promise.reject(err); }
   const [schema, rootValue] = grappRef.build();
-  return Promise.resolve<GrappData>({schema, rootValue});
+  return Promise.resolve({schema, rootValue});
 }
 
-export class TypeTokenStore {
-  private _tokens = new Map<string, InjectionToken<string>>();
-  create(selector: string): InjectionToken<string> {
-    if (this._tokens.has(selector))
-      throw new Error(`The token with selector "${selector} has already been created`);
-    const token =  new InjectionToken(selector);
-    this._tokens.set(selector, token);
-    return token;
-  }
-  get(selector: string): InjectionToken<string> {
-    return this._tokens.get(selector);
-  }
-}
 
 export function createCoreInjector(): Injector {
-  const coreProviders: Provider[] = [
-    {provide: TypeTokenStore, useClass: TypeTokenStore}
-  ];
+  const coreProviders: Provider[] = [];
   return Injector.resolveAndCreate(coreProviders);
 }
+
+export { GraphQLTypeResolver as Resolver } from 'graphql';

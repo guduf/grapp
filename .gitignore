@@ -4,6 +4,7 @@ packages/**/src/**/*.d.ts
 packages/**/src/**/*.js
 packages/**/src/**/*.map
 packages/**/out-tsc
+examples/agency
 examples/**/*.d.ts
 examples/**/*.js
 examples/**/*.map

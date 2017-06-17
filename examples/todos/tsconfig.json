@@ -13,6 +13,6 @@
     ]
   },
   "include": [
-    "main.ts"
+    "index.ts"
   ]
 }

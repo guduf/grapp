@@ -2,9 +2,12 @@
   "name": "grapp-example-hello-todos",
   "version": "0.1.0",
   "description": "example for grapp",
-  "main": "main.js",
+  "main": "index.js",
   "author": "guduf",
   "license": "MIT",
+  "scripts": {
+    "start": "tsc -p tsconfig.json && node index.js"
+  },
   "dependencies": {
     "@types/express": "^4.0.35",
     "body-parser": "^1.17.2",

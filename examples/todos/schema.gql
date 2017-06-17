@@ -14,13 +14,15 @@ type Todo {
 type TodoMutation {
   create(text: String!): Todo!
   complete(id: ID!): Todo!
-  remove(id: ID!): Boolean!
+  remove(id: ID!): ID
 }
 
 type Query {
   me: Author!
+  author(id: ID): Author!
   authors: [Author]!
-  todos(authorId: ID): [Todo]!
+  todos: [Todo]!
+  todo(id: ID): Todo
 }
 
 type Mutation {

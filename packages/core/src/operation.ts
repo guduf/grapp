@@ -1,7 +1,9 @@
 import 'reflect-metadata';
 import { get as stackTrace } from 'stack-trace';
 
+import { Resolver } from './core';
 import { Injector, Provider } from './di';
+import { GrappRef } from './grapp_ref';
 
 const OPERATION_META_TOKEN = 'grapp:operation';
 
@@ -11,20 +13,12 @@ export interface OperationParams {
 }
 
 export interface OperationMeta extends OperationParams {
-  opeType: 'Query'|'Mutation';
+  kind: 'Query'|'Mutation';
   selector: string;
 }
 
-export interface IOperation {
-  resolve(
-    args?: { [key: string]: any },
-    context?: { [key: string]: any },
-    info?: { [key: string]: any }
-  )
-}
-
 export function Operation(
-  opeType: 'Query'|'Mutation',
+  kind: 'Query'|'Mutation',
   params: OperationParams = {}
 ): ClassDecorator {
   return function OperationDecorator(opeTarget: any) {
@@ -34,19 +28,19 @@ export function Operation(
       if (!match) throw new Error('You must provide a selector or respect the Type pattern');
       selector = match[1].toLowerCase();
     }
-    const opeMeta: OperationMeta = {opeType, selector, ...params};
+    const opeMeta: OperationMeta = {kind, selector, providers: params.providers || []};
     Reflect.defineMetadata(OPERATION_META_TOKEN, opeMeta, opeTarget);
   }
 }
 
-export function Query(params: OperationParams = {}) {
-  return Operation('Query', params);
-}
+export function Query(params: OperationParams = {}) { return Operation('Query', params); }
+export function Mutation(params: OperationParams = {}) { return Operation('Mutation', params); }
 
-export function Mutation(params: OperationParams = {}) {
-  return Operation('Mutation', params);
-}
+export abstract class GenericQuery { query: Resolver<any, any>; }
+export abstract class GenericMutation { mutate: Resolver<any, any>; }
+export type GenericOperation = GenericQuery|GenericMutation;
+export type OperationTarget = any;
 
-export function getOperationMeta(opeTarget: any): OperationMeta {
+export function getOperationMeta(opeTarget: OperationTarget): OperationMeta {
   return Reflect.getMetadata(OPERATION_META_TOKEN, opeTarget);
 }

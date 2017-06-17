@@ -2,7 +2,18 @@ export * from './di';
 export { bootstrapGrapp } from './core';
 export { Grapp, GrappMeta, GrappParams } from './grapp';
 export {
-  ITypeBuilder,
+  GenericDoc,
+  Doc,
+  DocTypePayload,
+  DocType
+} from './doc';
+export {
+  Fields
+} from './doc_field';
+export {
+  GenericDocType
+} from './doc_type';
+export {
   Type,
   TypeBuilder,
   TypeMeta,
