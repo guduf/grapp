@@ -22,8 +22,9 @@ import {
 import { getOperationMeta, OperationTarget } from './operation';
 import { OperationRef } from './operation_ref';
 import { GrappMeta } from './grapp';
-import { Resolver } from './core';
-import { DocTarget, DocRef } from './doc';
+import { Resolver, } from './core';
+import { DocTarget } from './doc';
+import { DocRef, DOC_REFS, DocRefs } from './doc_ref';
 import { TypeRef } from './type_ref';
 
 export interface GrappDefinition {
@@ -38,12 +39,19 @@ export interface SchemaDef {
   mutations: FieldDefinitionNode[]
 }
 
+
 export class GrappRef {
   constructor(rootInjector: Injector, meta: GrappMeta) {
     const typeBuilder = (target, payload) => this.buildType(target, payload);
+    const docRefs = (docTarget: DocTarget): DocRef => {
+      const docRef = this._docs.get(docTarget);
+      if (!docRef) throw new ReferenceError(`Cannot find DocRef for DocTarget(${docTarget.name})`);
+      return docRef;
+    }
     const providers: Provider[] = [
       ...meta.providers,
-      {provide: TypeBuilder, useValue: {build: typeBuilder}}
+      {provide: TypeBuilder, useValue: {build: typeBuilder}},
+      {provide: DOC_REFS, useValue: {get: docRefs}}
     ];
     this._injector = Injector.resolveAndCreate(providers, rootInjector);
     this._parseMeta(meta);
@@ -130,7 +138,7 @@ export class GrappRef {
   private _rootValue : { [key: string]: any }
   private _parseMeta(meta: GrappMeta) {
     for (const docTarget of meta.docs)
-      try { this._docs.set(docTarget, new DocRef(docTarget)) } catch (err) {
+      try { this._docs.set(docTarget, new DocRef(this, docTarget)) } catch (err) {
         console.error(err);
         throw new Error(`Failed to reference DocTarget(${docTarget.name})`);
       }

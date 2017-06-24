@@ -1,9 +1,12 @@
 import { Injector } from './di';
-import { DocRef, getDocTypeMeta, DocTypePayload } from './doc';
+import { getDocTypeMeta } from './doc';
+import { DocRef } from './doc_ref';
+import { DocTypePayload } from './doc_type';
 import { GrappRef, SchemaDef } from './grapp_ref';
 import { getTypeMeta, TypeMeta, TYPE_PAYLOAD_TOKEN } from './type';
 import { Resolver } from './core';
 import { GenericDocType } from './doc_type';
+import { DocState } from './doc';
 
 export class TypeRef {
   constructor(private _grappRef: GrappRef, private _target: any) {
@@ -35,15 +38,13 @@ export class TypeRef {
   }
   get meta() { return this._meta; }
   get schemaDef() { return this._schemaDef; }
-  instanciate(payload: any): any {
+  instanciate(payload: DocState): any {
     const providers = [];
     if (this._docRef) {
-      const typeBuiler = (target, payload) => this._grappRef.buildType(target, payload);
+      const state = this._docRef.parseState(payload);
       const docTypePayload: DocTypePayload = {
-        db: undefined,
-        typeBuilder: {build: typeBuiler},
-        meta: this._docRef.meta,
-        docState: {id: 'foo'}
+        docRef: this._docRef,
+        state
       }
       providers.push({provide: DocTypePayload, useValue: docTypePayload});
     }

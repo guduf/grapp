@@ -4,13 +4,13 @@ export { Grapp, GrappMeta, GrappParams } from './grapp';
 export {
   GenericDoc,
   Doc,
-  DocTypePayload,
   DocType
 } from './doc';
 export {
   Fields
 } from './doc_field';
 export {
+  DocTypePayload,
   GenericDocType
 } from './doc_type';
 export {

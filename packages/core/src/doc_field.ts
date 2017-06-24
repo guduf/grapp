@@ -15,10 +15,20 @@ export class DocFieldMeta implements DocFieldOptions {
   required: boolean;
   inputable: boolean;
   updatable: boolean;
-  key: string;
-  validators: Function[];
-  constructor (opts: DocFieldOptions, validators: Validator[]) {
-
+  constructor (
+    public key: string,
+    public validators: Validator[],
+    opts: DocFieldOptions
+  ) {
+    if (typeof key !== 'string' || !key)
+      throw new TypeError('(key) is not a non-empty string');
+    if (!Array.isArray(validators) || validators.filter(val => typeof val !== 'function').length)
+      throw new TypeError('(validators) is not array of function');
+    const _opts: ['required', 'inputable', 'updatable'] = ['required', 'inputable', 'updatable'];
+    for (const opt of _opts)
+      if (typeof opts[opt] === 'boolean') this[opt] = opts[opt];
+      else if (typeof opts[opt.slice(0, 3)] === 'boolean') this[opt] = opts[opt.slice(0, 3)];
+      else this[opt] = true;
   }
 }
 
@@ -26,7 +36,7 @@ export interface Validator {
   (value: any): void|Promise<void>
 }
 
-const validators: { [key: string]: Validator } = {
+export const validators = {
   float(val: number) {
     validators.number(val);
     if (val < Math.pow(-2, 63) || val > Math.pow(-2, 63) - 1)
@@ -68,28 +78,28 @@ export function getFieldsMeta(docProto: any): Map<string, DocFieldMeta> {
 
 export function IntField(opts: DocFieldOptions): PropertyDecorator {
   return function decorateIntField(docProto: any, key: string) {
-    const docField = new DocFieldMeta(opts, [validators.integer]);
+    const docField = new DocFieldMeta(key, [validators.int], opts);
     decorateField(docProto, key, docField);
   }
 }
 
 export function StringField(opts: DocFieldOptions): PropertyDecorator {
   return function decorateIntField(docProto: any, key: string) {
-    const docField = new DocFieldMeta(opts, [validators.string]);
+    const docField = new DocFieldMeta(key, [validators.string], opts);
     decorateField(docProto, key, docField);
   }
 }
 
 export function BooleanField(opts: DocFieldOptions): PropertyDecorator {
   return function decorateIntField(docProto: any, key: string) {
-    const docField = new DocFieldMeta(opts, [validators.boolean]);
+    const docField = new DocFieldMeta(key, [validators.boolean], opts);
     decorateField(docProto, key, docField);
   }
 }
 
 export function IdField(opts: DocFieldOptions): PropertyDecorator {
   return function decorateIntField(docProto: any, key: string) {
-    const docFieldMeta = new DocFieldMeta(opts, [validators.shortid]);
+    const docFieldMeta = new DocFieldMeta(key, [validators.shortid], opts);
     decorateField(docProto, key, docFieldMeta);
   }
 }
@@ -100,3 +110,9 @@ export const Fields = {
   Int: IntField,
   Boolean: BooleanField
 };
+
+export function validate<T = any>(val: T, ...validators: Validator[]): T {
+  if (typeof val === 'undefined') return val;
+  for (const vld of (validators || [])) vld(val);
+  return val;
+}
