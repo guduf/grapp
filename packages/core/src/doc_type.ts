@@ -1,7 +1,7 @@
 import { TypeBuilder, TypeTarget } from './type';
 import { GenericDoc } from './doc';
 import { DocRef } from './doc_ref';
-import { GenericDocStorage } from './doc_storage';
+import { DocStorage } from './doc_storage';
 export interface DocState { id: string; [key: string]: any }
 
 export abstract class DocTypePayload {

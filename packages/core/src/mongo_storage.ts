@@ -2,13 +2,13 @@ import { Collection, Db } from '@types/mongodb';
 
 import { Inject, InjectionToken } from './di';
 import { DocState, DocTarget, Doc, DocParams } from './doc';
-import { GenericDocStorage } from './doc_storage';
+import { DocStorageFactory } from './doc_storage';
 import { validators as vld } from './doc_field';
 import { DocRefs, DOC_REFS } from './doc_ref';
 
 export const MongoDb = new InjectionToken('MongoDb');
 
-export class MongoStorage implements GenericDocStorage {
+export class MongoStorage implements DocStorageFactory {
   constructor(
     @Inject(MongoDb) private _db: Promise<Db>,
     @Inject(DOC_REFS) private _docRefs: DocRefs

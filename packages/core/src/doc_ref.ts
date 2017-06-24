@@ -1,6 +1,6 @@
 import { InjectionToken } from './di';
 import { DocMeta, DocState, DocTarget, getDocMeta } from './doc';
-import { GenericDocStorage } from './doc_storage';
+import { DocStorage, DocStorageFactory } from './doc_storage';
 import { validate, validators as vld } from './doc_field';
 // import { GrappRef } from './grapp_ref';
 
@@ -33,7 +33,13 @@ export class DocRef {
   findOne(conditions: { [key: string]: any } = {}, ...fields: string[]): Promise<DocState> {
     return this._storage.findOne(this.meta.target, conditions, ...fields);
   }
-  private _storage: GenericDocStorage;
+  get storage(): DocStorage {
+    return {
+      find: this.find.bind(this),
+      findOne: this.find.bind(this)
+    }
+  }
+  private _storage: DocStorageFactory;
 }
 
 export const DOC_REFS = new InjectionToken('DOC_REFS');

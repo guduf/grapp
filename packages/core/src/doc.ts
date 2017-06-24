@@ -1,7 +1,7 @@
 import 'reflect-metadata';
 import * as pluralize from 'pluralize';
 
-import { GenericDocStorage, DocStorageTarget } from './doc_storage';
+import { DocStorageFactoryTarget } from './doc_storage';
 import { DocFieldMeta, getFieldsMeta, validators as vld, validate } from './doc_field';
 import { TypeBuilder, Type, TypeParams, TypeTarget } from './type';
 
@@ -18,13 +18,13 @@ export interface DocState {
 
 export interface DocParams {
   collection?: string;
-  storage?: DocStorageTarget;
+  storage?: DocStorageFactoryTarget;
 }
 
 export class DocMeta implements DocParams {
   collection: string;
   fields: Map<string, DocFieldMeta>
-  storage: DocStorageTarget;
+  storage: DocStorageFactoryTarget;
   target: DocTarget;
 }
 
@@ -35,20 +35,21 @@ export function getDocMeta(docTarget: any): DocMeta {
 }
 
 export function Doc(
-  params: DocParams & { storage: DocStorageTarget }, filename?: string
+  params: DocParams & { storage: DocStorageFactoryTarget }, filename?: string
 ): ClassDecorator {
   return function docDecorator(target: DocTarget) {
     let collection = params.collection;
     if (!collection) {
-      const [, matched] = (target.name || '').match(/^([A-Z][a-z]+)(?:Doc)?$/) || <RegExpMatchArray>[];
+      const [, matched]: [void, string] =
+        (target.name || '').match(/^([A-Z][a-z]+)(?:Doc)?$/) || <RegExpMatchArray>[];
       if (!matched) throw new Error('You must provide a collection or respect the Doc pattern');
-      collection = pluralize((<string>matched)[0].toLocaleLowerCase() + (<string>matched).slice(1));
+      collection = pluralize((matched)[0].toLocaleLowerCase() + (matched).slice(1));
     }
     const fields = getFieldsMeta(target.prototype);
     if (!fields) throw new Error(`Cannot find fields meta for docTarget(${target.name})`);
     if (!params.storage) throw new Error('Storage not specified');
     const docMeta: DocMeta = {
-      ...<DocParams & { storage: DocStorageTarget }>params,
+      ...<DocParams & { storage: DocStorageFactoryTarget }>params,
       collection,
       fields,
       target
