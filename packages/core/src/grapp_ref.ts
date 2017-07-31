@@ -34,6 +34,7 @@ export interface GrappDefinition {
 }
 
 export interface SchemaDef {
+  misc: DefinitionNode[]
   types: DefinitionNode[]
   queries: FieldDefinitionNode[]
   mutations: FieldDefinitionNode[]
@@ -67,7 +68,7 @@ export class GrappRef {
   build(): [GraphQLSchema, { [key: string]: any }] {
     const docNode: DocumentNode = {
       kind: 'Document',
-      definitions: [...this._schemaDef.types]
+      definitions: [...this._schemaDef.misc, ...this._schemaDef.types]
     };
     const rootValue: { [key: string]: Resolver<any, any> } = {};
     const kinds: ['Query', 'Mutation'] = ['Query', 'Mutation'];
@@ -123,12 +124,13 @@ export class GrappRef {
     const types: DefinitionNode[] = [];
     const queries: FieldDefinitionNode[] = [];
     const mutations: FieldDefinitionNode[] = [];
-    for (const def of docNode.definitions) if (def.kind === 'ObjectTypeDefinition') {
-      if (def.name.value === 'Query') queries.push(...def.fields);
+    const misc: DefinitionNode[] = [];
+    for (const def of docNode.definitions)
+      if (def.kind !== 'ObjectTypeDefinition') misc.push(def);
+      else if (def.name.value === 'Query') queries.push(...def.fields);
       else if (def.name.value === 'Mutation') mutations.push(...def.fields);
       else types.push(def);
-    }
-    return {types, queries, mutations};
+    return {types, queries, mutations, misc};
   }
   private _injector: Injector;
   private _schemaDef: SchemaDef;

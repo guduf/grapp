@@ -1,5 +1,5 @@
 import { Collection, Db } from '@types/mongodb';
-
+import { generate as shortid } from 'shortid';
 import { Inject, InjectionToken } from './di';
 import { DocState, DocTarget, Doc, DocParams } from './doc';
 import { DocStorageFactory } from './doc_storage';
@@ -18,6 +18,22 @@ export class MongoStorage implements DocStorageFactory {
     const docRef = this._docRefs.get(target);
     if (!docRef) throw new ReferenceError(`Cannot find DocRef with DocTarget(${target.name})`);
     return (await this._db).collection(docRef.meta.collection);
+  }
+  async create(target: DocTarget, input: { [key: string]: any }): Promise<DocState> {
+    const docRef = this._docRefs.get(target);
+    const collection = (await this._db).collection(docRef.meta.collection);
+    const candidate: { [key: string]: any } = {};
+    for (const [field, meta] of docRef.meta.fields) if (meta.inputable) {
+      const value = input[field];
+      if (typeof value !== 'undefined' || meta.required) {
+        if (typeof value === 'undefined') throw new Error(`Input field required (${field})`);
+        for (const vld of meta.validators) vld(value);
+        candidate[field] = value;
+      }
+    }
+    const id = shortid();
+    await collection.insertOne({...candidate, id});
+    return {id};
   }
   async find(
     target: DocTarget, conditions: { [key: string]: any }, ...fields: string[]
@@ -40,6 +56,26 @@ export class MongoStorage implements DocStorageFactory {
     if (typeof raw !== 'object') throw new Error('Raw data is not a object');
     const state = docRef.parseState(raw);
     return state;
+  }
+  async remove(target: DocTarget, id: string): Promise<string> {
+    const docRef = this._docRefs.get(target);
+    const collection = (await this._db).collection(docRef.meta.collection);
+    await collection.deleteOne({id});
+    return id;
+  }
+  async update(target: DocTarget, id: string, input: { [key: string]: any }): Promise<DocState> {
+    const docRef = this._docRefs.get(target);
+    const collection = (await this._db).collection(docRef.meta.collection);
+    const update: { [key: string]: any } = {};
+    for (const [field, meta] of docRef.meta.fields) if (meta.updatable) {
+      const value = input[field];
+      if (typeof value !== 'undefined') {
+        for (const vld of meta.validators) vld(value);
+        update.value = value;
+      }
+    }
+    await collection.updateOne({id}, {$set: update});
+    return {id};
   }
 }
 

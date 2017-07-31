@@ -26,7 +26,7 @@ export function Operation(
     if (!params.selector) {
       const match = (<string>opeTarget.name || '').match(/^([A-Z][a-zA-Z0-9]+)(Query|Mutation)$/);
       if (!match) throw new Error('You must provide a selector or respect the Type pattern');
-      selector = match[1].toLowerCase();
+      selector = match[1][0].toLowerCase() + match[1].slice(1);
     }
     const opeMeta: OperationMeta = {kind, selector, providers: params.providers || []};
     Reflect.defineMetadata(OPERATION_META_TOKEN, opeMeta, opeTarget);
