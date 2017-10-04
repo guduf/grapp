@@ -1,11 +1,17 @@
 import { Provider } from './di';
+import { DocRef } from './doc_ref';
+import { GrappContext } from './grapp';
 import { defineMeta, getMeta } from './meta';
 
 export type DocTarget = any;
 
 export interface DocInstance {
-  id?: Promise<string>;
-  [key: string]: any;
+  id?: Promise<string>
+  [key: string]: any
+}
+
+export interface DocContext<D extends DocInstance = DocInstance> extends GrappContext {
+  docRef: DocRef<D>
 }
 
 export interface DocParams {

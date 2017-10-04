@@ -12,10 +12,6 @@ import { DocInstance } from './doc';
 import { DocRef } from './doc_ref';
 import { getGrappMeta, GrappMeta, GrappTarget } from './grapp';
 
-export interface GrappContext {
-
-}
-
 export interface GraphQLResolver<T = any> {
   (
     args: { [key: string]: any },

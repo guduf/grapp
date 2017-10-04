@@ -1,6 +1,8 @@
 import 'reflect-metadata';
 
-export type Meta = { [key: string]: any };
+export type Meta = {
+  [key: string]: any;
+};
 
 export function defineMeta<M extends Meta = Meta>(
   meta: M, symbol: Symbol, target: any

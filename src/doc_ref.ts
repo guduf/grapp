@@ -9,10 +9,10 @@ import { plural } from 'pluralize';
 import { generate as shortid } from 'shortid';
 
 import { Db, Collection } from './db';
-import { Injector } from './di';
 import { DocInstance, DocMeta, DocTarget, getDocMeta } from './doc';
-import { FieldMeta, getFieldsMeta } from './fields';
-import { GraphQLResolver, GrappContext, GrappRef } from './grapp_ref';
+import { DataFieldRef } from './data_fields';
+import { FieldRef, mapFieldMeta , FieldResolver} from './fields';
+import { GraphQLResolver, GrappRef } from './grapp_ref';
 
 export interface DocSchema {
   type: ObjectTypeDefinitionNode,
@@ -21,17 +21,13 @@ export interface DocSchema {
   definitions: DefinitionNode[]
 }
 
-export interface DocContext<D extends DocInstance = DocInstance> extends GrappContext {
-  docRef: DocRef<D>;
-}
-
 export const DOC_DATA = Symbol('DOC_DATA');
 
 export class DocRef<D extends DocInstance = DocInstance> {
   id: string;
   collection: Collection;
   meta: DocMeta;
-  fields: Map<string, FieldMeta>;
+  fields: Map<string, FieldRef>;
   operations: Map<string, Function>;
   schema: DocSchema;
   resolvers: { [key: string]: GraphQLResolver };
@@ -43,7 +39,9 @@ export class DocRef<D extends DocInstance = DocInstance> {
     for (const opeName of Object.getOwnPropertyNames(target))
       if (['prototype', 'name', 'length'].indexOf(opeName) < 0)
         this.operations.set(opeName, target[opeName]);
-    this.fields = getFieldsMeta(target);
+    this.fields = new Map();
+    for (const [key, meta] of mapFieldMeta(target))
+       this.fields.set(key, new meta.RefClass(this, key, meta));
     this.collection = this._grappRef.db.collection(plural(this.selector.toLocaleLowerCase()));
     this.schema = this._parseSchema();
     this.resolvers = this._buildResolvers();
@@ -77,17 +75,38 @@ export class DocRef<D extends DocInstance = DocInstance> {
   async insert(candidate: { [key: string]: any }): Promise<D> {
     const id = shortid();
     candidate = {...candidate, id};
-    await this.collection.insertOne(candidate);
+    const body = {};
+    for (const [key, ref] of this.fields) if (ref instanceof DataFieldRef && ref.meta.inputable) {
+      const value = candidate[key];
+      if (typeof value === 'undefined' || Object.is(null, value)) {
+        if (ref.meta.required)
+          throw new TypeError(`The value for field [${key}] is required to insert a doc of this type: ${this.selector}`);
+      }
+      else for (const vld of ref.meta.validators) {
+        try { vld(value); } catch (err) {
+          throw new TypeError(`Failed to validate field [${key}] for doc ${this.selector}: ${err.message}`);
+        }
+      }
+      body[key] = value;
+    }
+    await this.collection.insertOne(body);
     return this._instanciate(id);
   }
 
   async update(id: string, update: { [key: string]: any }): Promise<D> {
-    update = {...update};
-    await this.collection.updateOne({id}, update);
+    const body = {};
+    for (const [key, ref] of this.fields) if (ref instanceof DataFieldRef && ref.meta.updatable) {
+      const value = update[key];
+      if (typeof value !== 'undefined' && !Object.is(null, value)) {
+        for (const vld of ref.meta.validators) try { vld(value); } catch (err) {
+          throw new TypeError(`Failed to validate field [${key}] for doc ${this.selector}: ${err.message}`);
+        }
+        body[key] = value;
+      }
+    }
+    await this.collection.updateOne({id}, {$set: body});
     return this._instanciate(id);
   }
-
-  private _injector: Injector;
 
   private _buildResolvers(): { [key: string]: GraphQLResolver } {
     const fieldDefs: FieldDefinitionNode[] = [
@@ -97,45 +116,46 @@ export class DocRef<D extends DocInstance = DocInstance> {
     const resolvers: { [key: string]: GraphQLResolver } = {};
     for (const fieldDef of fieldDefs) {
       const fieldName = fieldDef.name.value;
+      let resolver: FieldResolver;
       switch (fieldName) {
         case 'delete':
-          resolvers[fieldName] = ({id}: { id: string }) => this.delete(id);
+          resolver = ({id}: { id: string }) => this.delete(id);
           break;
         case 'get':
-          resolvers[fieldName] = ({id}: { id: string }) => this.get(id);
+          resolver = ({id}: { id: string }) => this.get(id);
           break;
         case 'insert':
-          resolvers[fieldName] = (
+          resolver = (
             ({candidate}: { candidate: { [key: string]: any } }) => this.insert(candidate)
           );
           break;
         case 'update':
-          resolvers[fieldName] = (
+          resolver = (
             ({id, update}: { id: string, update: { [key: string]: any } }) => this.update(id, update)
           );
           break;
         default:
-          let resolver: GraphQLResolver;
+          let method;
           for (const key of Object.getOwnPropertyNames(this.target)) if (key === fieldName) {
-            resolver = this.target[key];
+            method = this.target[key];
             break;
           }
-          if (!resolver) throw new ReferenceError(`The field has no corresponding resolver: ${fieldName}`)
-          resolvers[fieldName] = (args: { [key: string]: any }, context: { [key: string]: any }, info: GraphQLResolveInfo) => {
-            return resolver.call(null, args, {...context, docRef: this}, info);
+          if (!method) throw new ReferenceError(`The field has no corresponding resolver: ${fieldName}`)
+          resolver = (args: { [key: string]: any }, context: { [key: string]: any }, info: GraphQLResolveInfo) => {
+            return method.call({}, args, {...context, docRef: this}, info);
           }
       }
+      resolvers[fieldName] = resolver;
     }
     return resolvers;
   }
 
   private _instanciate(id: string): D {
-    const instance: D = this._injector.resolveAndInstantiate(this.target);
+    const instance: D = new this.target();
     instance[DOC_DATA] = {id};
-    for (const [key, meta] of this.fields) {
-      instance[key] = meta.buildResolver(this, instance, key).call(meta);
+    for (const [key, ref] of this.fields) {
+      instance[key] = (args: {}, context, info) => ref.resolve(args, context, info);
     }
-    console.log(`instance`, instance);
     return instance;
   }
 

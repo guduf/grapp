@@ -1,6 +1,6 @@
 import { DocInstance, DocTarget } from './doc';
 import { DOC_DATA, DocRef } from './doc_ref';
-import { decorateField } from './fields';
+import { decorateField, FieldContext, FieldMeta, FieldRef } from './fields';
 import { validate, Validator, Validators } from './validators';
 
 export interface DataFieldOptions {
@@ -12,10 +12,7 @@ export interface DataFieldOptions {
   upd?: boolean;
 }
 
-export class DataFieldMeta implements DataFieldOptions {
-  required: boolean;
-  inputable: boolean;
-  updatable: boolean;
+export class DataFieldMeta implements FieldMeta, DataFieldOptions {
   constructor (
     public validators: Validator[],
     opts: DataFieldOptions = {},
@@ -30,15 +27,26 @@ export class DataFieldMeta implements DataFieldOptions {
       else this[opt] = true;
   }
 
-  buildResolver(docRef: DocRef, instance: DocInstance, key: string): { (): Promise<any> } {
-    return async () => {
-      const docData: { id: string, [key: string]: any } = instance[DOC_DATA];
-      if (docData[key]) return docData[key];
-      const collection  = await docRef.collection;
-      const data = await collection.findOne({id: docData.id}, {fields: {[key]: true}});
-      instance[DOC_DATA] = {...docData, data};
-      return instance[DOC_DATA][key];
-    };
+  RefClass = DataFieldRef;
+  required: boolean;
+  inputable: boolean;
+  updatable: boolean;
+}
+
+export class DataFieldRef implements FieldRef {
+  constructor(
+    public docRef: DocRef,
+    public key: string,
+    public meta: DataFieldMeta
+  ) { }
+
+  async resolve(args: {}, {docRef, doc, key}: FieldContext): Promise<any> {
+    const docData: { id: string, [key: string]: any } = doc[DOC_DATA];
+    if (docData[key]) return docData[key];
+    const data = await docRef.collection.findOne({id: docData.id}, {fields: {[key]: true}});
+    if (!data) throw new Error(`Can't fetch data for field [${key}] of type: ${docRef.selector}`);
+    doc[DOC_DATA] = {...docData, ...data};
+    return doc[DOC_DATA][key];
   }
 }
 
@@ -53,6 +61,7 @@ function buildDataFieldDecorator(
 
 export const Data = {
   boolean: buildDataFieldDecorator([Validators.boolean]),
+  color: buildDataFieldDecorator([Validators.color]),
   float: buildDataFieldDecorator([Validators.float]),
   shortid: buildDataFieldDecorator([Validators.shortid]),
   int: buildDataFieldDecorator([Validators.int]),
@@ -62,6 +71,7 @@ export const Data = {
 
 export const DataArray = {
   boolean: buildDataFieldDecorator([Validators.boolean], true),
+  color: buildDataFieldDecorator([Validators.color], true),
   float: buildDataFieldDecorator([Validators.float], true),
   shortid: buildDataFieldDecorator([Validators.shortid], true),
   int: buildDataFieldDecorator([Validators.int], true),

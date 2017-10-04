@@ -4,6 +4,10 @@ import { defineMeta, getMeta } from './meta';
 
 export type GrappTarget = any;
 
+export interface GrappContext {
+
+}
+
 export interface GrappParams {
   docs?: DocTarget[]
   providers?: Provider[]

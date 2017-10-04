@@ -8,9 +8,20 @@ export function validate<T = any>(val: T, ...validators: Validator[]): T {
 
 export interface Validator { (value: any): void|Promise<void> }
 
+const EMAIL_REGEX = /^(([^<>()\[\]\\.,;:\s@"]+(\.[^<>()\[\]\\.,;:\s@"]+)*)|(".+"))@((\[[0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3}])|(([a-zA-Z\-0-9]+\.)+[a-zA-Z]{2,}))$/;
+
 export const Validators = {
   boolean(val: boolean) {
     if (typeof val !== 'boolean') throw new Error('Not a boolean');
+  },
+  color(val: string) {
+    Validators.string(val);
+    if (!/^\#([0-9A-F]{3}(?:[0-9A-F]{3})?)$/.test(val)) throw new Error('Not a color');
+  },
+  email(val: string) {
+    Validators.string(val);
+    if (!EMAIL_REGEX.test(val))
+      throw new Error('Not a valid email');
   },
   float(val: number) {
     Validators.number(val);
