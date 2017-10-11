@@ -17,7 +17,7 @@ export function defineMetaKey<M extends Meta = Meta>(
 ): void {
   if (typeof symbol !== 'symbol' || typeof meta !== 'object') throw new TypeError();
   const map = mapMeta<M>(symbol, target) || new Map();
-  if (!(map instanceof Map) || map.has(key)) throw new ReferenceError();
+  if (map.has(key)) throw new ReferenceError(key);
   map.set(key, meta);
   if (isClass(target)) Reflect.defineMetadata(symbol, map, target.prototype);
   else Reflect.defineMetadata(symbol, map, target);

@@ -12,40 +12,35 @@ import { User } from './user';
 import { TokenTask, TokenTaskQuery } from './tokenTask';
 
 @Type()
-export class OrgaUserQuery {
+export class MediafixUserQuery {
   constructor(
     @Collection private _collection: Collection,
     @Typer private _typer: Typer
   ) { }
 
-  async get({id}: {id: string}): Promise<OrgaUser> {
+  async get({id}: {id: string}): Promise<MediafixUser> {
     return this._typer('Orga', {id});
   }
 
   async listByOrga(
     {orgaId, onlyManagers}: { orgaId: string, onlyManagers?: boolean }
-  ): Promise<OrgaUser[]> {
+  ): Promise<MediafixUser[]> {
     const dbQuery = {orgaId, ...(onlyManagers === true ? {isManager: true} : {})};
     const ids: {id: string}[] = await this._collection
       .find<{ id: string }>(dbQuery, {id: true})
       .toArray();
-    return ids.map(({id}) => this._typer('OrgaUser', {id}));
+    return ids.map(({id}) => this._typer('MediafixUser', {id}));
   }
 }
 
 @Type()
-export class OrgaUser extends User {
+export class MediafixUser extends User {
   private constructor(
     @Payload {id} : { id :string },
     @Typer private _typer: Typer
   ) { super(); }
 
-  group: 'orga'
-
-  @Data.shortid({req: true, inp: true, upd: false})
-  orgaId: string;
-  @Data.boolean({req: true, inp: true, upd: true})
-  isManager: boolean;
+  group: 'mediafix'
 
   async orga(): Promise<Orga> {
     const id  = await this.id;
@@ -54,17 +49,17 @@ export class OrgaUser extends User {
   }
 
   async tokenTasks(): Promise<TokenTask[]> {
-    const orgaUserId  = await this.id;
+    const mediafixUserId  = await this.id;
     const tokenTaskQuery: TokenTaskQuery = this._typer('TokenTaskQuery');
-    return tokenTaskQuery.findByOrgaUser({orgaUserId});
+    return tokenTaskQuery.findByMediafixUser({mediafixUserId});
   }
 }
 
 @Grapp({
-  types: [OrgaUser, OrgaUserQuery],
+  types: [MediafixUser, MediafixUserQuery],
   collection: 'orgaUser',
   schema: `
-    type OrgaUser implements User {
+    type MediafixUser implements User {
       id: ID!
       email: String!
       firstName: String!
@@ -72,19 +67,16 @@ export class OrgaUser extends User {
       group: UserGroup!
       lastConnection: Date
 
-      orga: Orga!
-      isManager: Boolean
       tokenTasks: [TokenTask]!
     }
 
-    type OrgaUserQuery {
-      get(id: ID!): OrgaUser
-      listByOrga(orgaId: ID!, onlyManagers: Boolean): [OrgaUser]!
+    type MediafixUserQuery {
+      get(id: ID!): MediafixUser
     }
 
     type Query {
-      OrgaUser: OrgaUserQuery
+      MediafixUser: MediafixUserQuery
     }
   `
 })
-export class OrgaUserGrapp { }
+export class MediafixUserGrapp { }

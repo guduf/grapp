@@ -1,6 +1,8 @@
 import { connect } from 'mongodb';
 
 import { bootstrapGrapp, Grapp } from '../../dist/index';
+
+import { MediafixUserGrapp } from './types/MediafixUser';
 import { OrgaGrapp } from './types/Orga';
 import { OrgaUserGrapp } from './types/OrgaUser';
 import { TokenPurchaseGrapp } from './types/TokenPurchase';
@@ -9,7 +11,21 @@ import { TokenTaskGrapp } from './types/TokenTask';
 const MONGODB_ENDPOINT = 'mongodb://127.0.0.1:27017/grapp-mediafix-pro'
 
 @Grapp({
-  imports: [OrgaGrapp, OrgaUserGrapp, TokenPurchaseGrapp, TokenTaskGrapp]
+  imports: [OrgaGrapp, OrgaUserGrapp, TokenPurchaseGrapp, TokenTaskGrapp, MediafixUserGrapp],
+  schema: `
+    scalar Date
+
+    enum UserGroup { mediafix organization }
+
+    interface User {
+      id: ID!
+      email: String!
+      firstName: String!
+      lastName: String!
+      group: UserGroup!
+      lastConnection: Date
+    }
+  `
 })
 class AppGrapp { }
 

@@ -1,10 +1,12 @@
 import {
+  buildASTSchema,
   DocumentNode,
   GraphQLSchema,
   FieldDefinitionNode,
   ObjectTypeDefinitionNode,
   DefinitionNode
 } from 'graphql';
+import { addResolveFunctionsToSchema } from 'graphql-tools';
 
 import { Db } from './db';
 import { Injector, Provider, TYPER } from './di';
@@ -15,7 +17,7 @@ import { TypeRef } from './type_ref';
 
 export interface RootParams {
   db: Db
-  providers: Provider[]
+  providers?: Provider[]
 }
 
 export class GrappRoot {
@@ -57,20 +59,17 @@ export class GrappRoot {
   }
 
   build(): GraphQLSchema {
-    const docResolverMap: { [type: string]: { [field: string]: any } } = {
+    const rootResolverMap: { [type: string]: { [field: string]: any } } = {
       Mutation: {},
       Query: {}
     };
-    const docNode: DocumentNode = {
-      kind: 'Document',
-      definitions: []
-    };
-    const queryNode: ObjectTypeDefinitionNode = {
+    const rootDocNode: DocumentNode = {kind: 'Document', definitions: []};
+    const rootQueryNode: ObjectTypeDefinitionNode = {
       kind: 'ObjectTypeDefinition',
       name: {kind: 'Name', value: 'Query'},
       fields: []
     };
-    const mutationNode: ObjectTypeDefinitionNode = {
+    const rootMutationNode: ObjectTypeDefinitionNode = {
       kind: 'ObjectTypeDefinition',
       name: {kind: 'Name', value: 'Mutation'},
       fields: []
@@ -79,33 +78,32 @@ export class GrappRoot {
       const {docNode, resolverMap} = grappRef.parse() || {docNode: undefined, resolverMap: undefined};
       if (docNode) {
         for (const def of docNode.definitions) {
-          if (def.kind !== 'ObjectTypeDefinition') docNode.definitions.push(def);
-          else if (['Mutation', 'Query'].indexOf(def.name.value) < 0) docNode.definitions.push(def);
-          else if (def.name.value === 'Mutation') mutationNode.fields.push(...def.fields);
-          else if (def.name.value === 'Query') queryNode.fields.push(...def.fields);
+          if (def.kind !== 'ObjectTypeDefinition') rootDocNode.definitions.push(def);
+          else if (['Mutation', 'Query'].indexOf(def.name.value) < 0) {
+            console.log(`def.name.value`, def.name.value);
+            rootDocNode.definitions.push(def);
+          }
+          else if (def.name.value === 'Mutation') rootMutationNode.fields.push(...def.fields);
+          else if (def.name.value === 'Query') rootQueryNode.fields.push(...def.fields);
         }
         for (const selector in resolverMap) {
-          if (selector === 'Mutation') docResolverMap['Mutation'] = {
-            ...docResolverMap['Mutation'],
-            ...resolverMap['Query']
+          if (['Mutation', 'Query'].indexOf(selector) >= 0) rootResolverMap[selector] = {
+            ...rootResolverMap[selector],
+            ...resolverMap[selector]
           };
-          else if (selector === 'Query') docResolverMap['Query'] = {
-            ...docResolverMap['Query'],
-            ...resolverMap['Query']
-          };
-          else docResolverMap[selector] = resolverMap[selector];
+          else rootResolverMap[selector] = resolverMap[selector];
         }
       }
     }
-    console.log(`docNode`, docNode);
-    console.log(`docResolverMap`, docResolverMap);
-    return null;
+    rootDocNode.definitions.push(rootMutationNode, rootQueryNode);
+    const schema = buildASTSchema(rootDocNode);
+    addResolveFunctionsToSchema(schema, rootResolverMap);
+    return schema;
   }
 }
 
-export function bootstrapGrapp(target: GrappTarget, params: RootParams): Promise<GraphQLSchema> {
+export async function bootstrapGrapp(target: GrappTarget, params: RootParams): Promise<GraphQLSchema> {
   let grappRef: GrappRef;
   const root = new GrappRoot(target, params);
-  console.log(root.build());
-  return;
+  return root.build();
 }

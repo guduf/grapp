@@ -7,12 +7,13 @@ import {
   Type
 } from '../../../dist/index';
 
+import { Orga } from './Orga';
 
 @Type()
 export class TokenPurchase {
   private constructor(
-    @Payload
-    {id}: {id: string}
+    @Payload {id}: {id: string},
+    @Typer private _typer: Typer
   ) { }
 
   @Data.shortid({req: true, inp: false, upd: false})
@@ -26,6 +27,11 @@ export class TokenPurchase {
   amount: number;
   @Data.shortid({req: false, inp: true, upd: true})
   ref: String;
+
+  async orga(): Promise<Orga> {
+    const id = await this.orgaId;
+    return this._typer<Orga>('Orga', {id});
+  }
 }
 
 @Type()
@@ -50,11 +56,14 @@ export class TokenPurchaseQuery {
 
 @Type()
 export class TokenPurchaseMutation {
-
+  create(): Promise<TokenPurchase> {
+    throw new Error('Not implemented')
+  }
 }
 
 @Grapp({
   types: [TokenPurchase, TokenPurchaseQuery, TokenPurchaseMutation],
+  collection: 'tokenPurchases',
   schema: `
     type TokenPurchase {
       id: ID!
@@ -62,7 +71,7 @@ export class TokenPurchaseMutation {
       amount: Int!
       ref: String
 
-      organization: Organization!
+      orga: Orga!
     }
 
     input TokenPurchaseCandidate {
@@ -73,7 +82,7 @@ export class TokenPurchaseMutation {
 
     type TokenPurchaseMutation {
       create(
-        organizationId: ID!,
+        orgaId: ID!,
         candidate: TokenPurchaseCandidate!
       ): TokenPurchase!
     }

@@ -44,10 +44,10 @@ export class GrappRef {
   constructor(target: GrappTarget, public root: GrappRoot) {
     this.meta = getGrappMeta(target);
     if (typeof this.meta !== 'object')
-      throw new ReferenceError('The target has not been decorated as Grapp');
+      throw new ReferenceError('The target has not been decorated as Grapp: ' + (target.name || typeof target));
     this.imports = this.meta.imports.map(grappTarget => this.root.registerGrappRef(grappTarget));
     const providers = [...this.meta.providers];
-    if (this.collection) {
+    if (this.meta.collection) {
       this.collection = this.root.db.collection(this.meta.collection);
       providers.push({provide: COLLECTION, useValue: this.collection});
     }

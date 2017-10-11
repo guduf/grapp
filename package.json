@@ -1,6 +1,6 @@
 {
   "name": "grapp",
-  "version": "0.2.0",
+  "version": "0.3.0",
   "description": "node framework for graphql applications",
   "main": "index.js",
   "scripts": {
@@ -20,6 +20,7 @@
   "dependencies": {
     "@angular/core": "^4.4.4",
     "graphql": "^0.10.1",
+    "graphql-tools": "^2.4.0",
     "mongodb": "^2.2.31",
     "pluralize": "^5.0.0",
     "reflect-metadata": "^0.1.0",

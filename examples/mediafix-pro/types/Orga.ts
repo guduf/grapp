@@ -78,6 +78,7 @@ export class OrgaMutation {
 
 @Grapp({
   types: [Orga, OrgaQuery, OrgaMutation],
+  collection: 'orgaUsers',
   schema: `
     type Orga {
       id: ID!
