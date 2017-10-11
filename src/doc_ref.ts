@@ -42,7 +42,7 @@ export class DocRef<D extends DocInstance = DocInstance> {
     this.fields = new Map();
     for (const [key, meta] of mapFieldMeta(target))
        this.fields.set(key, new meta.RefClass(this, key, meta));
-    this.collection = this._grappRef.db.collection(plural(this.selector.toLocaleLowerCase()));
+    this.collection = this._grappRef.root.db.collection(plural(this.selector.toLocaleLowerCase()));
     this.schema = this._parseSchema();
     this.resolvers = this._buildResolvers();
   }
@@ -50,7 +50,7 @@ export class DocRef<D extends DocInstance = DocInstance> {
   get idKey(): string { return `${this.selector.toLocaleLowerCase()}Id`; }
   get idsKey(): string { return `${this.selector.toLocaleLowerCase()}Ids`; }
   get selector(): string { return this.meta.selector; }
-  get otherRefs(): Map<string, DocRef> { return this._grappRef.docRefs; }
+  get otherRefs(): Map<string, DocRef> { return new Map(); }
 
   async find(query: Object): Promise<D[]> {
     const ids = await this.collection.find<{id: string}>(query, {fields: {id: 1}}).toArray();
@@ -119,10 +119,10 @@ export class DocRef<D extends DocInstance = DocInstance> {
       let resolver: FieldResolver;
       switch (fieldName) {
         case 'delete':
-          resolver = ({id}: { id: string }) => this.delete(id);
+          resolver = ({}, {id}: { id: string }) => this.delete(id);
           break;
         case 'get':
-          resolver = ({id}: { id: string }) => this.get(id);
+          resolver = ({}, {id}: { id: string }) => this.get(id);
           break;
         case 'insert':
           resolver = (
@@ -131,7 +131,7 @@ export class DocRef<D extends DocInstance = DocInstance> {
           break;
         case 'update':
           resolver = (
-            ({id, update}: { id: string, update: { [key: string]: any } }) => this.update(id, update)
+            ({}, {id, update}: { id: string, update: { [key: string]: any } }) => this.update(id, update)
           );
           break;
         default:
@@ -145,7 +145,7 @@ export class DocRef<D extends DocInstance = DocInstance> {
             return method.call({}, args, {...context, docRef: this}, info);
           }
       }
-      resolvers[fieldName] = resolver;
+      resolvers[fieldName] = <any>resolver;
     }
     return resolvers;
   }
@@ -154,7 +154,7 @@ export class DocRef<D extends DocInstance = DocInstance> {
     const instance: D = new this.target();
     instance[DOC_DATA] = {id};
     for (const [key, ref] of this.fields) {
-      instance[key] = (args: {}, context, info) => ref.resolve(args, context, info);
+      instance[key] = (args: {}, context, info) => ref.resolve({}, args, context, info);
     }
     return instance;
   }

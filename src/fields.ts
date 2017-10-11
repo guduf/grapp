@@ -1,33 +1,34 @@
-import { GraphQLResolveInfo } from 'graphql';
-import { DocInstance, DocContext } from './doc';
-import { DocRef } from './doc_ref';
+import { GraphQLResolveInfo, GraphQLFieldResolver } from 'graphql';
+
+import { TypeInstance } from './type';
+import { TypeRef } from './type_ref';
 import { defineMetaKey, mapMeta, Meta } from './meta';
 
 export const FIELDS_META = Symbol('FIELDS_META');
 
-export interface FieldContext<D = DocInstance> extends DocContext<D> {
-  doc: D
-  key: string
+export interface FieldContext {
+
 }
 
 export interface FieldMeta {
-  RefClass: { new (docRef: DocRef, key: string, meta: FieldMeta) }
+  FieldRefClass: { new (typeRef: TypeRef, key: string, meta: FieldMeta) }
   [key: string]: any
 }
 
-export interface FieldResolver<T = any> {
+export interface FieldResolver<R = any> extends GraphQLFieldResolver<TypeInstance, FieldContext> {
   (
+    source: TypeInstance,
     args: { [key: string]: any },
-    context: FieldContext,
+    context: any,
     info: GraphQLResolveInfo
-  ): T|Promise<T>
+  ): R|Promise<R>
 }
 
-export interface FieldRef<T = any> {
-  docRef: DocRef
+export interface FieldRef<R = any> {
+  typeRef: TypeRef
   key: string
-  meta: FieldMeta
-  resolve: FieldResolver<T>
+  meta?: FieldMeta
+  resolve: FieldResolver<R>
 }
 
 export function decorateField(meta: { [key: string]: any }) {

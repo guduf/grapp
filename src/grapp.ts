@@ -9,17 +9,26 @@ export interface GrappContext {
 }
 
 export interface GrappParams {
-  docs?: DocTarget[]
+  imports?: GrappTarget[]
+  types?: DocTarget[]
   providers?: Provider[]
+  schema?: string,
+  collection?: string
 }
 
 export class GrappMeta implements GrappParams {
-  docs: DocTarget[]
+  imports: GrappTarget[]
+  types: DocTarget[]
   providers: Provider[]
+  collection: string;
+  schema?: string
 
-  constructor(params: GrappParams) {
-    this.docs = params.docs || [];
+  constructor(public target: GrappTarget, params: GrappParams) {
+    this.imports = params.imports || [];
     this.providers = params.providers || [];
+    this.types = params.types || [];
+    this.schema = params.schema;
+    this.collection = params.collection;
   }
 }
 
@@ -27,7 +36,7 @@ const GRAPP_META = Symbol('GRAPP_META');
 
 export function decorateGrapp(params: GrappParams): ClassDecorator {
   return function grappDecorator(target: GrappTarget) {
-    const meta = new GrappMeta(params);
+    const meta = new GrappMeta(target, params);
     defineMeta(meta, GRAPP_META, target);
   }
 }

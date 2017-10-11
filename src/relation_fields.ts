@@ -1,5 +1,5 @@
-import { DocInstance } from './doc';
-import { DocRef } from './doc_ref';
+import { TypeInstance } from './type';
+import { TypeRef } from './type_ref';
 import { decorateField, FieldContext, FieldMeta, FieldRef, FieldResolver } from './fields';
 import { defineMetaKey } from './meta';
 
@@ -13,34 +13,35 @@ export class RelationFieldMeta implements FieldMeta {
     public query: Object
   ) { }
 
-  RefClass = RelationFieldRef;
+  FieldRefClass = RelationFieldRef;
 }
 
 export class RelationFieldRef implements FieldRef {
   constructor(
-    public docRef: DocRef,
+    public typeRef: TypeRef,
     public key: string,
     public meta: RelationFieldMeta
   ) { }
 
-  resolve(args: {}, {doc}: FieldContext) { return this._fetchData(doc); }
+  resolve(instance: TypeInstance, args: {}) { return this._fetchData(instance); }
 
-  private async _fetchData(instance: DocInstance): Promise<DocInstance|DocInstance[]> {
-    if (/^sybs?$/.test(this.meta.kind)) throw new Error('Not implemented');
-    const {foreignSelector, kind, query} = this.meta;
-    const foreignDocRef = this.docRef.otherRefs.get(foreignSelector);
-    if (!foreignDocRef)
-      throw new ReferenceError(`Can't find DocRef with this selector: ${foreignSelector}`);
-    switch (kind) {
-      case 'btm':
-        return foreignDocRef.find({...query, [this.docRef.idKey]: this.docRef.id});
-      case 'bto':
-        return foreignDocRef.findOne({...query, [this.docRef.idKey]: this.docRef.id});
-      case 'hm':
-        return this.docRef.find({...query, $ids: (await instance[foreignDocRef.idsKey])});
-      case 'ho':
-        return this.docRef.findOne({...query, id: (await instance[foreignDocRef.idKey])});
-    }
+  private async _fetchData(instance: TypeInstance): Promise<TypeInstance|TypeInstance[]> {
+    return <TypeInstance>null;
+    // if (/^sybs?$/.test(this.meta.kind)) throw new Error('Not implemented');
+    // const {foreignSelector, kind, query} = this.meta;
+    // const foreignTypeRef = this.typeRef.otherRefs.get(foreignSelector);
+    // if (!foreignTypeRef)
+    //   throw new ReferenceError(`Can't find TypeRef with this selector: ${foreignSelector}`);
+    // switch (kind) {
+    //   case 'btm':
+    //     return foreignTypeRef.find({...query, [this.typeRef.idKey]: this.typeRef.id});
+    //   case 'bto':
+    //     return foreignTypeRef.findOne({...query, [this.typeRef.idKey]: this.typeRef.id});
+    //   case 'hm':
+    //     return this.typeRef.find({...query, $ids: (await instance[foreignTypeRef.idsKey])});
+    //   case 'ho':
+    //     return this.typeRef.findOne({...query, id: (await instance[foreignTypeRef.idKey])});
+    // }
   }
 }
 
