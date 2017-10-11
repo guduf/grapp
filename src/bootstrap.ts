@@ -100,36 +100,6 @@ export class GrappRoot {
     console.log(`docNode`, docNode);
     console.log(`docResolverMap`, docResolverMap);
     return null;
-    // const queryFieldDefs: FieldDefinitionNode[] = [];
-    // const mutationFieldDefs: FieldDefinitionNode[] = [];
-    // const typeDefs: ObjectTypeDefinitionNode[] = [];
-    // const miscDefs: DefinitionNode[] = [];
-    // for (const [, grappRef] of this.grappRefs) {
-    //   const docNode = grappRef.parseSchema();
-    //   if (docNode) for (const def of docNode.definitions)
-    //     if (def.kind !== 'ObjectTypeDefinition') miscDefs.push(def);
-    //     else if (def.name.value === 'Mutation') mutationFieldDefs.push(...def.fields);
-    //     else if (def.name.value === 'Query') queryFieldDefs.push(...def.fields);
-    //     else typeDefs.push(def);
-    // }
-
-    // docNode.definitions.push(...miscDefs);
-
-    // for (const typeDef of typeDefs) {
-    //   const typeRef = this.getType(typeDef.name.value);
-    //   if (typeRef) throw new Error('Cannot find type with this selector: ' + typeDef.name.value);
-    //   resolverMap[typeDef.name.value] = {};
-    //   for (const fieldDef of typeDef.fields) {
-    //     const fieldRef = typeRef.fields.get(fieldDef.name.value);
-    //     if (typeRef) throw new Error('Cannot find field with this selector: ' + fieldDef.name.value);
-    //     resolverMap[typeDef.name.value][fieldDef.name.value] = fieldRef.resolve.bind(fieldRef);
-    //     docNode.definitions.push(typeDef);
-    //   }
-    // }
-
-    // for (const typeDef of )
-
-    // return;
   }
 }
 

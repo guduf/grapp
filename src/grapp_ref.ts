@@ -71,58 +71,6 @@ export class GrappRef {
     this.typeRefs = typeRefs;
   }
 
-  // build(): GraphQLSchema {
-  //   const docNode = this._parseSchema();
-  //   if (!docNode) throw new Error('Empty DocNode');
-  //   let resolverMap: { [key: string]: any } = {}
-  //   for (const defNode of docNode.definitions) if (defNode.kind === 'ObjectTypeDefinition') {
-  //     const typeName = defNode.name.value;
-  //     if (['Mutation', 'Query'].indexOf(typeName) >= 0) {
-  //       resolverMap[typeName] = {};
-  //       for (const field of defNode.fields) {
-  //         if (field.type.kind !== 'NamedType') throw new Error(
-  //           `${typeName} field must return NamedType`
-  //         );
-  //         const typeRef= this.typeRefs.get(field.type.name.value);
-  //         if (!typeRef) throw new Error(
-  //           `Cannot find type for ${typeName}: ${field.type.name.value}`
-  //         );
-  //         resolverMap[typeName][field.type.name.value] = typeRef.instanciate({});
-  //       }
-  //     } else {
-  //       const typeRef = this.typeRefs.get(typeName);
-  //       if (!typeRef) throw new Error('Cannot find type with selector: ' + typeName);
-  //       resolverMap[typeName] = typeName;
-  //     }
-  //     console.log(`resolverMap`, resolverMap);
-  //   }
-  //   let queryFields: FieldDefinitionNode[];
-  //   let mutationFields: FieldDefinitionNode[];
-  //   for (const defNode of docNode.definitions)
-  //     if (defNode.kind === 'ObjectTypeDefinition') {
-  //       if (defNode.name.value === 'Query') queryFields = defNode.fields;
-  //       if (defNode.name.value === 'Mutation') mutationFields = defNode.fields;
-  //       if (queryFields && mutationFields) break;
-  //     }
-  //   let rootValue: { [key: string]: any } = {};
-  //   for (const field of [...mutationFields, ...queryFields]) {
-  //     if (field.type.kind !== 'NamedType') throw new Error('Query field must return NamedType');
-  //     rootValue[field.name.value] = rootValue[field.name.value] || {};
-  //     let type: ObjectTypeDefinitionNode;
-  //     for (const defNode of docNode.definitions) if (
-  //       defNode.kind === 'ObjectTypeDefinition' &&
-  //       defNode.name.value === field.type.name.value
-  //     ) {
-  //       type = defNode;
-  //       break;
-  //     }
-  //     for (const field of type.fields) {
-  //       console.log(`Field`, field.name.value);
-  //     }
-  //   }
-  //   return;
-  // }
-
   parse(): { docNode: DocumentNode, resolverMap: { [key: string]: { [key: string]: any } } } {
     if (!this.meta.schema) return null;
     const docNode = parseSchema(this.meta.schema, {noLocation: true});
@@ -153,43 +101,5 @@ export class GrappRef {
       }
     }
     return {docNode, resolverMap};
-    // for (const def of docNode.definitions)
-    //   if (def.kind !== 'ObjectTypeDefinition') miscDefs.push(def);
-    //   else if (def.name.value === 'Mutation') mutationFieldDefs.push(...def.fields);
-    //   else if (def.name.value === 'Query') queryFieldDefs.push(...def.fields);
-    //   else typeDefs.push(def);
-    // }
-    // const docNode: DocumentNode = {
-    //   kind: 'Document',
-    //   definitions: []
-    // };
-    // const queryNode: ObjectTypeDefinitionNode = {
-    //   kind: 'ObjectTypeDefinition',
-    //   name: {kind: 'Name', value: 'Query'},
-    //   fields: []
-    // };
-    // const mutationNode: ObjectTypeDefinitionNode = {
-    //   kind: 'ObjectTypeDefinition',
-    //   name: {kind: 'Name', value: 'Mutation'},
-    //   fields: []
-    // };
-    // const nodes: DocumentNode[] = [
-    //   ...this.imports.map(imp => imp.parseSchema()),
-    //   this.meta.schema ?  : null
-    // ]
-    //   .filter(node => Boolean(node));
-    // if (!nodes.length) return null;
-    // for (const {definitions} of nodes) {
-    //   for (const def of definitions) {
-    //     if (def.kind === 'ObjectTypeDefinition') {
-    //       if (def.name.value === 'Query') queryNode.fields.push(...def.fields);
-    //       else if (def.name.value === 'Mutation') mutationNode.fields.push(...def.fields);
-    //       else docNode.definitions.push(def);
-    //     }
-    //     else docNode.definitions.push(def);
-    //   }
-    // }
-    // docNode.definitions.push(queryNode, mutationNode);
-    // return docNode;
   }
 }
