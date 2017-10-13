@@ -1,6 +1,6 @@
-import { DocTarget } from './doc';
 import { Provider } from './di';
 import { defineMeta, getMeta } from './meta';
+import { TypeTarget } from './type';
 
 export type GrappTarget = any;
 
@@ -10,17 +10,15 @@ export interface GrappContext {
 
 export interface GrappParams {
   imports?: GrappTarget[]
-  types?: DocTarget[]
+  types?: TypeTarget[]
   providers?: Provider[]
   schema?: string,
-  collection?: string
 }
 
 export class GrappMeta implements GrappParams {
   imports: GrappTarget[]
-  types: DocTarget[]
+  types: TypeTarget[]
   providers: Provider[]
-  collection: string;
   schema?: string
 
   constructor(public target: GrappTarget, params: GrappParams) {
@@ -28,7 +26,6 @@ export class GrappMeta implements GrappParams {
     this.providers = params.providers || [];
     this.types = params.types || [];
     this.schema = params.schema;
-    this.collection = params.collection;
   }
 }
 

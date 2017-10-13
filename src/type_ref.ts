@@ -1,3 +1,4 @@
+import { Injector } from './di';
 import { FieldRef, mapFieldMeta , FieldResolver} from './fields';
 import { MethodFieldRef } from './method_field';
 import { GrappRef } from './grapp_ref';
@@ -7,6 +8,7 @@ export const DOC_DATA = Symbol('DOC_DATA');
 
 export class TypeRef<I extends TypeInstance = TypeInstance> {
   id: string;
+  injector: Injector;
   meta: TypeMeta;
   fields: Map<string, FieldRef>;
   operations: Map<string, Function>;
@@ -14,9 +16,11 @@ export class TypeRef<I extends TypeInstance = TypeInstance> {
 
   get selector() { return this.meta.selector; }
 
-  constructor(private _grappRef: GrappRef, public target: TypeTarget) {
+  constructor(public grappRef: GrappRef, public target: TypeTarget) {
     this.meta = getTypeMeta(target);
     if (!this.meta) throw new ReferenceError('The target has not been decorated as Type');
+    const providers = [...this.meta.providers];
+    this.injector = this.grappRef.injector.resolveAndCreateChild(providers);
     const fields = new Map<string, FieldRef>();
     const methodKeys = Object.getOwnPropertyNames(this.target.prototype).filter(key => {
       if (['constructor'].indexOf(key) >= 0) return false;
@@ -48,6 +52,9 @@ export class TypeRef<I extends TypeInstance = TypeInstance> {
   }
 
   instanciate(payload: { [key: string]: any }): I {
-    return this._grappRef.injector.resolveAndInstantiate(this.target);
+    let instance: I;
+    if (typeof this.meta.instanciate === 'function') instance = this.meta.instanciate<I>(this, payload);
+    else instance = this.injector.resolveAndInstantiate(this.target);
+    return instance;
   }
 }

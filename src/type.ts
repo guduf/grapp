@@ -18,25 +18,33 @@ export interface TypeParams {
 export class TypeMeta implements TypeParams {
   providers: Provider[];
   selector: string;
+  instanciate?: {
+    <I extends TypeInstance = TypeInstance>(typeRef: TypeRef, payload?: { [key: string]: any }): I
+  }
 
   constructor(target: TypeTarget, params: TypeParams) {
+    if (typeof params !== 'object') throw new TypeError('Params is not a object');
     this.providers  = params.providers || [];
-    this.selector = params.selector;
+    if (params.selector) this.selector = params.selector;
+    else if (target.name) this.selector = target.name;
+    else throw new Error('Selector is not defined');
   }
 }
 
 const TYPE_META = Symbol('TYPE_META');
 
 export function decorateType(params: TypeParams = {}): ClassDecorator {
-  if (typeof params !== 'object') throw new TypeError();
   return function docDecorator(target: TypeTarget) {
-    if (!params.selector) params.selector = target.name;
-
-    Injectable()(target);
-    defineMeta(new TypeMeta(target, params), TYPE_META, target);
+    setTypeMeta(target, new TypeMeta(target, params));
   }
 }
 
-export function getTypeMeta(target: TypeTarget): TypeMeta {
-  return getMeta<TypeMeta>(TYPE_META, target);
+export function setTypeMeta(target: TypeTarget, meta: TypeMeta) {
+  if (!(meta instanceof TypeMeta)) throw new TypeError('meta is not a instance of TypeMeta');
+  Injectable()(target);
+  defineMeta(meta, TYPE_META, target);
+}
+
+export function getTypeMeta<M extends TypeMeta = TypeMeta>(target: TypeTarget): M {
+  return getMeta<M>(TYPE_META, target);
 }

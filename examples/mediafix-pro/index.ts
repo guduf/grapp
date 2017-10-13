@@ -1,3 +1,6 @@
+import { json } from 'body-parser';
+import * as express from 'express';
+import { graphqlExpress, graphiqlExpress } from 'graphql-server-express';
 import { connect } from 'mongodb';
 
 import { bootstrapGrapp, Grapp } from '../../dist/index';
@@ -32,7 +35,11 @@ class AppGrapp { }
 export async function bootstrapApp() {
   const db = await connect(MONGODB_ENDPOINT);
   const schema = await bootstrapGrapp(AppGrapp, {db});
-  console.log(`schema`, schema);
+  const app = express();
+  app.use('/graphql', json(), graphqlExpress({schema}));
+  app.use('/graphiql', graphiqlExpress({endpointURL: '/graphql'}));
+  app.listen(3000, () => console.log('listen on 3000'))
+
 }
 
 bootstrapApp().then(null, console.error);

@@ -45,15 +45,14 @@ export class GrappRoot {
     return grappRef;
   }
 
-  getType(selector: string) {
+  getType(selector: string): TypeRef {
     for (const [, grappRef] of this.grappRefs)
       if (grappRef.typeRefs.has(selector))
         return grappRef.typeRefs.get(selector);
   }
 
   typer(selector: string, payload: { [key: string]: any }): TypeInstance {
-    let typeRef: TypeRef;
-
+    const typeRef = this.getType(selector);
     if (!typeRef) throw new Error('Cant find type with selector: ' + selector);
     return typeRef.instanciate(payload);
   }
@@ -75,23 +74,28 @@ export class GrappRoot {
       fields: []
     };
     for (const [, grappRef] of this.grappRefs) {
-      const {docNode, resolverMap} = grappRef.parse() || {docNode: undefined, resolverMap: undefined};
-      if (docNode) {
-        for (const def of docNode.definitions) {
+      let parsed: { docNode: DocumentNode, resolverMap: { [key: string]: any } }
+      try {
+        parsed = grappRef.parse();
+      } catch (err) {
+        console.error(err);
+        throw new Error('Failed to parse grappRef: ' + grappRef.target.name);
+      }
+      if (parsed) {
+        for (const def of parsed.docNode.definitions) {
           if (def.kind !== 'ObjectTypeDefinition') rootDocNode.definitions.push(def);
           else if (['Mutation', 'Query'].indexOf(def.name.value) < 0) {
-            console.log(`def.name.value`, def.name.value);
             rootDocNode.definitions.push(def);
           }
           else if (def.name.value === 'Mutation') rootMutationNode.fields.push(...def.fields);
           else if (def.name.value === 'Query') rootQueryNode.fields.push(...def.fields);
         }
-        for (const selector in resolverMap) {
+        for (const selector in parsed.resolverMap) {
           if (['Mutation', 'Query'].indexOf(selector) >= 0) rootResolverMap[selector] = {
             ...rootResolverMap[selector],
-            ...resolverMap[selector]
+            ...parsed.resolverMap[selector]
           };
-          else rootResolverMap[selector] = resolverMap[selector];
+          else rootResolverMap[selector] = parsed.resolverMap[selector];
         }
       }
     }

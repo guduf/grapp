@@ -7,6 +7,7 @@ import {
   FieldDefinitionNode,
   ObjectTypeDefinitionNode,
   NamedTypeNode,
+  NonNullTypeNode,
   GraphQLFieldResolver,
   parse as parseSchema
 } from 'graphql';
@@ -41,21 +42,17 @@ export class GrappRef {
   imports: GrappRef[];
   injector: Injector;
 
-  constructor(target: GrappTarget, public root: GrappRoot) {
+  constructor(public target: GrappTarget, public root: GrappRoot) {
     this.meta = getGrappMeta(target);
-    if (typeof this.meta !== 'object')
-      throw new ReferenceError('The target has not been decorated as Grapp: ' + (target.name || typeof target));
+    if (typeof this.meta !== 'object') throw new ReferenceError(
+      'The target has not been decorated as Grapp: ' + (target.name || typeof target)
+    );
     this.imports = this.meta.imports.map(grappTarget => this.root.registerGrappRef(grappTarget));
     const providers = [...this.meta.providers];
-    if (this.meta.collection) {
-      this.collection = this.root.db.collection(this.meta.collection);
-      providers.push({provide: COLLECTION, useValue: this.collection});
-    }
     this.injector = this.root.injector.resolveAndCreateChild(providers);
     const typeRefs = new Map<string, TypeRef>();
-    for (const grappRef of this.imports) {
+    for (const grappRef of this.imports)
       for (const [key, typeRef] of grappRef.typeRefs) typeRefs.set(key, typeRef);
-    }
     for (const typeTarget of this.meta.types) {
       let typeRef: TypeRef;
       try {
@@ -79,17 +76,18 @@ export class GrappRef {
       if (['Mutation', 'Query'].indexOf(def.name.value) >= 0) {
         resolverMap[def.name.value] = {};
         for (const fieldDef of def.fields) {
-          if (fieldDef.type.kind !== 'NamedType')
-            throw new TypeError(def.name.value + ' fields must be NamedType');
-          const typeRef = this.typeRefs.get(fieldDef.type.name.value);
+          if (fieldDef.type.kind !== 'NonNullType')
+            throw new TypeError(def.name.value + ' fields must be NonNullType');
+          const selector = (<NamedTypeNode>fieldDef.type.type).name.value;
+          const typeRef = this.typeRefs.get(selector);
           if (!typeRef)
-            throw new ReferenceError('Cannot find type with selector' + fieldDef.type.name.value);
-          resolverMap[def.name.value][fieldDef.name.value] = typeRef.instanciate({});
+            throw new ReferenceError('Cannot find type with selector ' + selector);
+          resolverMap[def.name.value][fieldDef.name.value] = () => typeRef.instanciate({});
         }
       }
       else {
         const typeRef = this.typeRefs.get(def.name.value);
-        if (!typeRef) throw new ReferenceError('Cannot find type with selector' + def.name.value);
+        if (!typeRef) throw new ReferenceError('Cannot find type with selector ' + def.name.value);
         resolverMap[def.name.value] = {};
         for (const fieldDef of def.fields) {
           const fieldRef = typeRef.fields.get(fieldDef.name.value);

@@ -2,8 +2,12 @@ import {
   Data,
   Grapp,
   Collection,
+  CreateDoc,
+  UpdateDoc,
   Payload,
-  Type,
+  Doc,
+  DocMutation,
+  DocQuery,
   Typer
 } from '../../../dist/index';
 
@@ -11,7 +15,7 @@ import { OrgaUser, OrgaUserQuery } from './OrgaUser';
 import { TokenPurchase, TokenPurchaseQuery } from './TokenPurchase';
 import { TokenTask, TokenTaskQuery } from './TokenTask';
 
-@Type()
+@Doc()
 export class Orga {
   constructor(
     @Payload {id}: { id: string },
@@ -45,7 +49,7 @@ export class Orga {
   }
 }
 
-@Type()
+@DocQuery({docTarget: Orga})
 export class OrgaQuery {
   constructor(
     @Collection private _collection: Collection,
@@ -64,21 +68,22 @@ export class OrgaQuery {
   }
 }
 
-@Type()
+@DocMutation({docTarget: Orga})
 export class OrgaMutation {
   constructor(
     @Collection private _collection: Collection,
-    @Typer private _typer: Typer
+    @Typer private _typer: Typer,
+    @CreateDoc private _createDoc: CreateDoc<Orga>,
+    @UpdateDoc private _updateDoc: UpdateDoc<Orga>
   ) { }
 
-  async create(name: string): Promise<Orga> {
-    return this._typer('Orga', {id: 'foo'});
+  async create({name}: { name: string }): Promise<Orga> {
+    return this._createDoc({candidate: {name}});
   }
 }
 
 @Grapp({
   types: [Orga, OrgaQuery, OrgaMutation],
-  collection: 'orgaUsers',
   schema: `
     type Orga {
       id: ID!
@@ -90,20 +95,20 @@ export class OrgaMutation {
     }
 
     type OrgaQuery {
-      get(id: ID!): Orga
+      get(id: ID!): Orga!
       list: [Orga]!
     }
 
     type OrgaMutation {
-      create(name: String!): Orga
+      create(name: String!): Orga!
     }
 
     type Query {
-      Orga: OrgaQuery
+      Orga: OrgaQuery!
     }
 
     type Mutation {
-      Orga: OrgaMutation
+      Orga: OrgaMutation!
     }
   `
 })

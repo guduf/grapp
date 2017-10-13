@@ -1,5 +1,4 @@
-import { DocInstance, DocTarget } from './doc';
-import { DOC_DATA, DocRef } from './doc_ref';
+import { DocInstance, DOC_DATA } from './doc';
 import { TypeRef } from './type_ref';
 import { decorateField, FieldContext, FieldMeta, FieldRef } from './fields';
 import { validate, Validator, Validators } from './validators';

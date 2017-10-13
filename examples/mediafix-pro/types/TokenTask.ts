@@ -5,7 +5,9 @@ import {
   Collection,
   Payload,
   Typer,
-  Type
+  Doc,
+  DocMutation,
+  DocQuery
 } from '../../../dist/index';
 
 import { MediafixUser } from './MediafixUser';
@@ -14,7 +16,7 @@ import { OrgaUser } from './OrgaUser';
 
 export type TokenTaskStatus = 'proposal'|'pending'|'validation'|'completed'|'canceled';
 
-@Type()
+@Doc()
 export class TokenTask {
   constructor(
     @Payload {id}: { id: string },
@@ -60,7 +62,7 @@ export class TokenTask {
   }
 }
 
-@Type()
+@DocQuery({docTarget: TokenTask})
 export class TokenTaskQuery {
   private constructor(
     @Typer private _typer: Typer,
@@ -100,7 +102,7 @@ export class TokenTaskQuery {
   }
 }
 
-@Type()
+@DocMutation({docTarget: TokenTask})
 export class TokenTaskMutation {
   private constructor(
     @Typer private _typer: Typer,
@@ -118,7 +120,6 @@ export class TokenTaskMutation {
 
 @Grapp({
   types: [TokenTask, TokenTaskMutation, TokenTaskQuery],
-  collection: 'tokenTasks',
   schema: `
     enum TokenTaskStatus { proposal pending validation completed canceled }
 
@@ -151,7 +152,7 @@ export class TokenTaskMutation {
     }
 
     type Mutation {
-      TokenTask: TokenTaskMutation
+      TokenTask: TokenTaskMutation!
     }
 
     type TokenTaskQuery {
@@ -160,7 +161,7 @@ export class TokenTaskMutation {
     }
 
     type Query {
-      TokenTask: TokenTaskQuery
+      TokenTask: TokenTaskQuery!
     }
   `
 })

@@ -1,5 +1,3 @@
-import { DocTarget } from './doc';
-
 export function validate<T = any>(val: T, ...validators: Validator[]): T {
   if (typeof val === 'undefined') return val;
   for (const vld of (validators || [])) vld(val);

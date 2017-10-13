@@ -4,12 +4,14 @@ import {
   Collection,
   Payload,
   Typer,
-  Type
+  Doc,
+  DocMutation,
+  DocQuery
 } from '../../../dist/index';
 
 import { Orga } from './Orga';
 
-@Type()
+@Doc()
 export class TokenPurchase {
   private constructor(
     @Payload {id}: {id: string},
@@ -34,7 +36,7 @@ export class TokenPurchase {
   }
 }
 
-@Type()
+@DocQuery({docTarget: TokenPurchase})
 export class TokenPurchaseQuery {
   constructor(
     @Collection private _collection: Collection,
@@ -54,7 +56,7 @@ export class TokenPurchaseQuery {
   }
 }
 
-@Type()
+@DocMutation({docTarget: TokenPurchase})
 export class TokenPurchaseMutation {
   create(): Promise<TokenPurchase> {
     throw new Error('Not implemented')
@@ -63,7 +65,6 @@ export class TokenPurchaseMutation {
 
 @Grapp({
   types: [TokenPurchase, TokenPurchaseQuery, TokenPurchaseMutation],
-  collection: 'tokenPurchases',
   schema: `
     type TokenPurchase {
       id: ID!
@@ -88,15 +89,15 @@ export class TokenPurchaseMutation {
     }
 
     type Mutation {
-      TokenPurchase: TokenPurchaseMutation
+      TokenPurchase: TokenPurchaseMutation!
     }
 
     type TokenPurchaseQuery {
-      get(id: ID!): TokenPurchase
+      get(id: ID!): TokenPurchase!
     }
 
     type Query {
-      TokenPurchase: TokenPurchaseQuery
+      TokenPurchase: TokenPurchaseQuery!
     }
   `
 })

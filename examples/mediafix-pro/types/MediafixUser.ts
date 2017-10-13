@@ -1,5 +1,8 @@
 import {
   Data,
+  Doc,
+  DocMutation,
+  DocQuery,
   Grapp,
   Collection,
   Payload,
@@ -11,29 +14,7 @@ import { Orga, OrgaQuery } from './orga';
 import { User } from './user';
 import { TokenTask, TokenTaskQuery } from './tokenTask';
 
-@Type()
-export class MediafixUserQuery {
-  constructor(
-    @Collection private _collection: Collection,
-    @Typer private _typer: Typer
-  ) { }
-
-  async get({id}: {id: string}): Promise<MediafixUser> {
-    return this._typer('Orga', {id});
-  }
-
-  async listByOrga(
-    {orgaId, onlyManagers}: { orgaId: string, onlyManagers?: boolean }
-  ): Promise<MediafixUser[]> {
-    const dbQuery = {orgaId, ...(onlyManagers === true ? {isManager: true} : {})};
-    const ids: {id: string}[] = await this._collection
-      .find<{ id: string }>(dbQuery, {id: true})
-      .toArray();
-    return ids.map(({id}) => this._typer('MediafixUser', {id}));
-  }
-}
-
-@Type()
+@Doc()
 export class MediafixUser extends User {
   private constructor(
     @Payload {id} : { id :string },
@@ -55,9 +36,30 @@ export class MediafixUser extends User {
   }
 }
 
+@DocQuery({docTarget: MediafixUser})
+export class MediafixUserQuery {
+  constructor(
+    @Collection private _collection: Collection,
+    @Typer private _typer: Typer
+  ) { }
+
+  async get({id}: {id: string}): Promise<MediafixUser> {
+    return this._typer('Orga', {id});
+  }
+
+  async listByOrga(
+    {orgaId, onlyManagers}: { orgaId: string, onlyManagers?: boolean }
+  ): Promise<MediafixUser[]> {
+    const dbQuery = {orgaId, ...(onlyManagers === true ? {isManager: true} : {})};
+    const ids: {id: string}[] = await this._collection
+      .find<{ id: string }>(dbQuery, {id: true})
+      .toArray();
+    return ids.map(({id}) => this._typer('MediafixUser', {id}));
+  }
+}
+
 @Grapp({
   types: [MediafixUser, MediafixUserQuery],
-  collection: 'orgaUser',
   schema: `
     type MediafixUser implements User {
       id: ID!
@@ -75,7 +77,7 @@ export class MediafixUser extends User {
     }
 
     type Query {
-      MediafixUser: MediafixUserQuery
+      MediafixUser: MediafixUserQuery!
     }
   `
 })
