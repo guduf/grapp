@@ -45,14 +45,14 @@ export class GrappRoot {
     return grappRef;
   }
 
-  getType(selector: string): TypeRef {
+  getTypeRef(selector: string): TypeRef {
     for (const [, grappRef] of this.grappRefs)
       if (grappRef.typeRefs.has(selector))
         return grappRef.typeRefs.get(selector);
   }
 
   typer(selector: string, payload: { [key: string]: any }): TypeInstance {
-    const typeRef = this.getType(selector);
+    const typeRef = this.getTypeRef(selector);
     if (!typeRef) throw new Error('Cant find type with selector: ' + selector);
     return typeRef.instanciate(payload);
   }

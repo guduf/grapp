@@ -12,11 +12,11 @@ import {
   parse as parseSchema
 } from 'graphql';
 
-import { GrappRoot } from './bootstrap';
+import { GrappRoot } from './root';
 import { Db, Collection } from './db';
 import { Injector, Provider, COLLECTION } from './di';
 import { FieldResolver } from './fields';
-import { TypeInstance } from './type';
+import { getTypeMeta, TypeInstance } from './type';
 import { TypeRef } from './type_ref';
 import { getGrappMeta, GrappMeta, GrappTarget } from './grapp';
 
@@ -54,9 +54,11 @@ export class GrappRef {
     for (const grappRef of this.imports)
       for (const [key, typeRef] of grappRef.typeRefs) typeRefs.set(key, typeRef);
     for (const typeTarget of this.meta.types) {
+      const meta = getTypeMeta(typeTarget);
       let typeRef: TypeRef;
       try {
-        typeRef = new TypeRef(this, typeTarget);
+        if (meta.TypeRefClass) typeRef = new meta.TypeRefClass(this, typeTarget, meta);
+        else typeRef = new TypeRef(this, typeTarget, meta);
       } catch (err) {
         console.error(err);
         throw new Error(
@@ -71,7 +73,9 @@ export class GrappRef {
   parse(): { docNode: DocumentNode, resolverMap: { [key: string]: { [key: string]: any } } } {
     if (!this.meta.schema) return null;
     const docNode = parseSchema(this.meta.schema, {noLocation: true});
-    const resolverMap: { [key: string]: { [key: string]: any } } = {};
+    const resolverMap: { [key: string]: { [key: string]: any } } = {
+      ...this.meta.resolvers
+    };
     for (const def of docNode.definitions) if (def.kind === 'ObjectTypeDefinition') {
       if (['Mutation', 'Query'].indexOf(def.name.value) >= 0) {
         resolverMap[def.name.value] = {};

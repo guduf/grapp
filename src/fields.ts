@@ -29,6 +29,7 @@ export interface FieldRef<R = any> {
   key: string
   meta?: FieldMeta
   resolve: FieldResolver<R>
+  defineProperty?: { (instance: TypeInstance): void }
 }
 
 export function decorateField(meta: { [key: string]: any }) {

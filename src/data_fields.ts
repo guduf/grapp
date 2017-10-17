@@ -1,6 +1,7 @@
 import { DocInstance, DOC_DATA } from './doc';
-import { TypeRef } from './type_ref';
+import { DocRef } from './doc_ref';
 import { decorateField, FieldContext, FieldMeta, FieldRef } from './fields';
+import { TypeInstance } from './type';
 import { validate, Validator, Validators } from './validators';
 
 export type DataFieldShortOptions = '000'|'001'|'010'|'011'|'100'|'101'|'110'|'111';
@@ -47,12 +48,22 @@ export class DataFieldMeta implements FieldMeta, DataFieldOptions {
 
 export class DataFieldRef implements FieldRef {
   constructor(
-    public typeRef: TypeRef,
+    public typeRef: DocRef,
     public key: string,
     public meta: DataFieldMeta
   ) { }
 
-  async resolve(instance: any, args: {}): Promise<any> {
+  defineProperty(instance: TypeInstance) {
+     const descriptor: PropertyDescriptor = {
+      get: () => { return this.resolve(instance); },
+      set: (newValue: any) => { throw new Error('You cant set a decorated property') },
+      enumerable: true,
+      configurable: false
+     }
+     Object.defineProperty(instance, this.key, descriptor);
+  }
+
+  async resolve(instance: TypeInstance): Promise<any> {
     const typeData: { id: string, [key: string]: any } = instance[DOC_DATA];
     if (typeData[this.key]) return typeData[this.key];
     const data = await this.typeRef.collection.findOne({id: typeData.id}, {fields: {[this.key]: true}});

@@ -10,7 +10,6 @@ examples/**/*.js
 examples/**/*.map
 examples/**/node_modules
 
-
 yarn.lock
 
 # Tests

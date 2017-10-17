@@ -18,11 +18,11 @@ export interface TypeParams {
 export class TypeMeta implements TypeParams {
   providers: Provider[];
   selector: string;
-  instanciate?: {
-    <I extends TypeInstance = TypeInstance>(typeRef: TypeRef, payload?: { [key: string]: any }): I
-  }
-
-  constructor(target: TypeTarget, params: TypeParams) {
+  constructor(
+    target: TypeTarget,
+    params: TypeParams,
+    public TypeRefClass?: typeof TypeRef
+  ) {
     if (typeof params !== 'object') throw new TypeError('Params is not a object');
     this.providers  = params.providers || [];
     if (params.selector) this.selector = params.selector;

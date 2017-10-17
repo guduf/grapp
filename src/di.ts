@@ -34,7 +34,7 @@ export const REMOVE_DOC = Symbol('REMOVE_DOC');
 export const RemoveDoc: ParameterDecorator = Inject(REMOVE_DOC);
 
 export interface RemoveDoc {
-  (args: { id: string }): Promise<void>
+  (args: { id: string }): Promise<boolean>
 }
 
 export const TYPER = Symbol('TYPER');

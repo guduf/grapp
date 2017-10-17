@@ -24,13 +24,13 @@ export const Validators = {
   },
   float(val: number) {
     Validators.number(val);
-    if (val < Math.pow(-2, 63) || val > Math.pow(-2, 63) - 1)
+    if (val < Math.pow(-2, 63) || val > Math.pow(2, 63) - 1)
       throw new Error('Exceed 64-bit range');
   },
   int(val: number) {
     Validators.number(val);
     if (val !== Math.floor(val)) throw new Error('Invalid integer');
-    if (val < Math.pow(-2, 31) || val > Math.pow(-2, 31) - 1)
+    if (val < Math.pow(-2, 31) || val > Math.pow(2, 31) - 1)
       throw new Error('Exceed 32-bit range');
   },
   number(val: number) {

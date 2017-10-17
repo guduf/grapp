@@ -1,16 +1,17 @@
+import { DocRef } from './doc_ref';
 import { TypeInstance } from './type';
-import { TypeRef } from './type_ref';
 import { decorateField, FieldContext, FieldMeta, FieldRef, FieldResolver } from './fields';
 import { defineMetaKey } from './meta';
+import { plural } from 'pluralize';
 
 
-export type RelationFieldKind = 'btm'|'bto'|'hm'|'ho'|'syb'|'sybs';
+export type RelationFieldKind = 'btm'|'bto'|'hm'|'ho';
 
 export class RelationFieldMeta implements FieldMeta {
   constructor(
     public kind: RelationFieldKind,
     public foreignSelector: string,
-    public query: Object
+    public query: Object,
   ) { }
 
   FieldRefClass = RelationFieldRef;
@@ -18,30 +19,69 @@ export class RelationFieldMeta implements FieldMeta {
 
 export class RelationFieldRef implements FieldRef {
   constructor(
-    public typeRef: TypeRef,
+    public typeRef: DocRef,
     public key: string,
     public meta: RelationFieldMeta
   ) { }
 
-  resolve(instance: TypeInstance, args: {}) { return this._fetchData(instance); }
+
+  defineProperty(instance: TypeInstance) {
+    const descriptor: PropertyDescriptor = {
+     get: () => { return this.resolve(instance); },
+     set: (newValue: any) => { throw new Error('You cant set a decorated property') },
+     enumerable: true,
+     configurable: false
+    }
+    Object.defineProperty(instance, this.key, descriptor);
+  }
+
+  resolve(instance: TypeInstance) { return this._fetchData(instance); }
 
   private async _fetchData(instance: TypeInstance): Promise<TypeInstance|TypeInstance[]> {
-    return <TypeInstance>null;
-    // if (/^sybs?$/.test(this.meta.kind)) throw new Error('Not implemented');
-    // const {foreignSelector, kind, query} = this.meta;
-    // const foreignTypeRef = this.typeRef.otherRefs.get(foreignSelector);
-    // if (!foreignTypeRef)
-    //   throw new ReferenceError(`Can't find TypeRef with this selector: ${foreignSelector}`);
-    // switch (kind) {
-    //   case 'btm':
-    //     return foreignTypeRef.find({...query, [this.typeRef.idKey]: this.typeRef.id});
-    //   case 'bto':
-    //     return foreignTypeRef.findOne({...query, [this.typeRef.idKey]: this.typeRef.id});
-    //   case 'hm':
-    //     return this.typeRef.find({...query, $ids: (await instance[foreignTypeRef.idsKey])});
-    //   case 'ho':
-    //     return this.typeRef.findOne({...query, id: (await instance[foreignTypeRef.idKey])});
-    // }
+    const {foreignSelector, kind, query} = this.meta;
+    const foreignDocRef = <DocRef>this.typeRef.grappRef.root.getTypeRef(foreignSelector);
+    if (!(foreignDocRef instanceof DocRef)) throw new Error('foreignDocRef is not instance of DocRef');
+    if (kind[0] === 'b') {
+      let docIdKey = this.typeRef.selector[0].toLocaleLowerCase() + this.typeRef.selector.slice(1) + 'Id';
+      if (!foreignDocRef.fields.has(docIdKey)) {
+        if (foreignDocRef.fields.has(plural(docIdKey))) docIdKey = plural(docIdKey);
+        else throw new Error('Cannot find docIdKey in foreignDocRef: ' + docIdKey);
+      }
+      switch (kind) {
+        case 'btm': {
+          const btmQuery = {...query, [docIdKey]: (await instance.id)};
+          const data: { id: string }[] = await foreignDocRef.collection.find(btmQuery, {id: true}).toArray();
+          return data.map(({id}) => foreignDocRef.instanciate({id}));
+        }
+        case 'bto': {
+          const btoQuery = {...query, [docIdKey]: (await instance.id)};
+          const data: { id: string } = await foreignDocRef.collection.findOne(btoQuery);
+          return foreignDocRef.instanciate(data);
+        }
+      }
+    }
+    else if (kind[0] === 'h') {
+      let foreignDocIdKey = foreignDocRef.selector[0].toLocaleLowerCase() + foreignDocRef.selector.slice(1) + 'Id';
+      switch (kind) {
+        case 'hm': {
+          if (!this.typeRef.fields.has(plural(foreignDocIdKey)))
+            throw new Error('Cannot find foreignDocId in DocRef: ' + plural(foreignDocIdKey));
+          const ids: string[] = await instance[plural(foreignDocIdKey)];
+          const hmQuery = {...query, id: {$in: ids}};
+          const data: { id: string }[] = await foreignDocRef.collection.find(hmQuery, {id: true}).toArray();
+          return data.map(({id}) => foreignDocRef.instanciate({id}));
+        }
+        case 'ho': {
+          if (!this.typeRef.fields.has(foreignDocIdKey))
+            throw new Error('Cannot find foreignDocId in DocRef: ' + foreignDocIdKey);
+          const docId = await instance[foreignDocIdKey];
+          const hoQuery = {...query, id: docId};
+          const {id}: { id: string } = await foreignDocRef.collection.findOne(hoQuery);
+          return foreignDocRef.instanciate({id});
+        }
+      }
+    }
+    else throw new ReferenceError('Cannot fing the relation kind: ' + kind);
   }
 }
 
