@@ -6,6 +6,7 @@ export interface GrappContext {
 export interface GrappParams {
     imports?: GrappTarget[];
     types?: TypeTarget[];
+    operations?: TypeTarget[];
     providers?: Provider[];
     schema?: string;
     resolvers?: {
@@ -16,6 +17,7 @@ export declare class GrappMeta implements GrappParams {
     target: GrappTarget;
     imports: GrappTarget[];
     types: TypeTarget[];
+    operations: TypeTarget[];
     providers: Provider[];
     schema?: string;
     resolvers: {

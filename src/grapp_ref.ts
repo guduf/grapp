@@ -15,10 +15,12 @@ import {
 import { GrappRoot } from './root';
 import { Db, Collection } from './db';
 import { Injector, Provider, COLLECTION } from './di';
-import { FieldResolver } from './fields';
+import { FieldRef, FieldResolver } from './fields';
 import { getTypeMeta, TypeInstance } from './type';
 import { TypeRef } from './type_ref';
 import { getGrappMeta, GrappMeta, GrappTarget } from './grapp';
+import { OperationMeta } from './operation';
+import { OperationRef } from './operation_ref';
 
 export interface GraphQLResolver<T = any> {
   (
@@ -37,6 +39,7 @@ export interface GrappSchemaDefs {
 
 export class GrappRef {
   collection: Collection;
+  operationRefs: Set<OperationRef>;
   typeRefs: Map<string, TypeRef>;
   meta: GrappMeta;
   imports: GrappRef[];
@@ -53,21 +56,37 @@ export class GrappRef {
     const typeRefs = new Map<string, TypeRef>();
     for (const grappRef of this.imports)
       for (const [key, typeRef] of grappRef.typeRefs) typeRefs.set(key, typeRef);
-    for (const typeTarget of this.meta.types) {
-      const meta = getTypeMeta(typeTarget);
+    for (const target of this.meta.types) {
+      const meta = getTypeMeta(target);
       let typeRef: TypeRef;
       try {
-        if (meta.TypeRefClass) typeRef = new meta.TypeRefClass(this, typeTarget, meta);
-        else typeRef = new TypeRef(this, typeTarget, meta);
+        if (meta.TypeRefClass) typeRef = new meta.TypeRefClass(this, target, meta);
+        else typeRef = new TypeRef(this, target, meta);
       } catch (err) {
         console.error(err);
         throw new Error(
-          'Failed to reference Type: ' + (typeTarget.name ? typeTarget.name : typeof typeTarget)
+          'Failed to reference Type: ' + (target.name ? target.name : typeof target)
         );
       }
       typeRefs.set(typeRef.selector, typeRef);
     }
     this.typeRefs = typeRefs;
+    const operationRefs = new Set<OperationRef>();
+    for (const target of this.meta.operations) {
+      const meta = getTypeMeta<OperationMeta>(target);
+      if (typeof this.meta !== 'object') throw new ReferenceError(
+        'The target has not been decorated as Grapp: ' + (target.name || typeof target)
+      );
+      let operationRef: OperationRef
+      try { operationRef = new OperationRef(this, target, meta); } catch (err) {
+        console.error(err);
+        throw new Error(
+          'Failed to reference Type: ' + (target.name ? target.name : typeof target)
+        );
+      }
+      operationRefs.add(operationRef);
+    }
+    this.operationRefs = operationRefs;
   }
 
   parse(): { docNode: DocumentNode, resolverMap: { [key: string]: { [key: string]: any } } } {
@@ -80,13 +99,22 @@ export class GrappRef {
       if (['Mutation', 'Query'].indexOf(def.name.value) >= 0) {
         resolverMap[def.name.value] = {};
         for (const fieldDef of def.fields) {
-          if (fieldDef.type.kind !== 'NonNullType')
-            throw new TypeError(def.name.value + ' fields must be NonNullType');
-          const selector = (<NamedTypeNode>fieldDef.type.type).name.value;
-          const typeRef = this.typeRefs.get(selector);
-          if (!typeRef)
-            throw new ReferenceError('Cannot find type with selector ' + selector);
-          resolverMap[def.name.value][fieldDef.name.value] = () => typeRef.instanciate({});
+          let fieldRef: FieldRef;
+          for (const operationRef of this.operationRefs)
+            if (operationRef.fields.has(fieldDef.name.value)) {
+              fieldRef = operationRef.fields.get(fieldDef.name.value);
+              break;
+            }
+          if (fieldRef) resolverMap[def.name.value][fieldDef.name.value] = fieldRef.resolve.bind(fieldRef);
+          else {
+            if (fieldDef.type.kind !== 'NonNullType')
+              throw new TypeError(def.name.value + ' fields must be NonNullType');
+            const selector = (<NamedTypeNode>fieldDef.type.type).name.value;
+            const typeRef = this.typeRefs.get(selector);
+            if (!typeRef)
+              throw new ReferenceError('Cannot find type with selector ' + selector);
+            resolverMap[def.name.value][fieldDef.name.value] = () => typeRef.instanciate({});
+          }
         }
       }
       else {

@@ -1,0 +1,1 @@
+{"version":3,"file":"operation_ref.js","sourceRoot":"","sources":["../src/operation_ref.ts"],"names":[],"mappings":";;AAGA,yCAAqC;AAErC,kBAA4C,SAAQ,kBAAO;IACzD,YAAmB,QAAkB,EAAS,MAAkB,EAAS,IAAmB;QAC1F,KAAK,CAAC,QAAQ,EAAE,MAAM,EAAE,IAAI,CAAC,CAAC;QADb,aAAQ,GAAR,QAAQ,CAAU;QAAS,WAAM,GAAN,MAAM,CAAY;QAAS,SAAI,GAAJ,IAAI,CAAe;IAE5F,CAAC;CACF;AAJD,oCAIC"}

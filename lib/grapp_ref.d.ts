@@ -4,6 +4,7 @@ import { Collection } from './db';
 import { Injector } from './di';
 import { TypeRef } from './type_ref';
 import { GrappMeta, GrappTarget } from './grapp';
+import { OperationRef } from './operation_ref';
 export interface GraphQLResolver<T = any> {
     (args: {
         [key: string]: any;
@@ -21,6 +22,7 @@ export declare class GrappRef {
     target: GrappTarget;
     root: GrappRoot;
     collection: Collection;
+    operationRefs: Set<OperationRef>;
     typeRefs: Map<string, TypeRef>;
     meta: GrappMeta;
     imports: GrappRef[];

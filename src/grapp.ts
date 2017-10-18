@@ -11,6 +11,7 @@ export interface GrappContext {
 export interface GrappParams {
   imports?: GrappTarget[]
   types?: TypeTarget[]
+  operations?: TypeTarget[]
   providers?: Provider[]
   schema?: string
   resolvers?: { [key: string]: any }
@@ -19,6 +20,7 @@ export interface GrappParams {
 export class GrappMeta implements GrappParams {
   imports: GrappTarget[]
   types: TypeTarget[]
+  operations: TypeTarget[]
   providers: Provider[]
   schema?: string
   resolvers: { [key: string]: any }
@@ -27,6 +29,7 @@ export class GrappMeta implements GrappParams {
     this.imports = params.imports || [];
     this.providers = params.providers || [];
     this.types = params.types || [];
+    this.operations = params.operations || [];
     this.resolvers = params.resolvers || [];
     this.schema = params.schema;
   }
