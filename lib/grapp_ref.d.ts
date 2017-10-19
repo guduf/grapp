@@ -1,17 +1,10 @@
-import { DefinitionNode, DocumentNode, GraphQLResolveInfo, FieldDefinitionNode, ObjectTypeDefinitionNode } from 'graphql';
+import { DefinitionNode, DocumentNode, FieldDefinitionNode, ObjectTypeDefinitionNode } from 'graphql';
 import { GrappRoot } from './root';
 import { Collection } from './db';
 import { Injector } from './di';
 import { TypeRef } from './type_ref';
 import { GrappMeta, GrappTarget } from './grapp';
 import { OperationRef } from './operation_ref';
-export interface GraphQLResolver<T = any> {
-    (args: {
-        [key: string]: any;
-    }, context: {
-        [key: string]: any;
-    }, info: GraphQLResolveInfo): T | Promise<T>;
-}
 export interface GrappSchemaDefs {
     query: FieldDefinitionNode[];
     mutation: FieldDefinitionNode[];

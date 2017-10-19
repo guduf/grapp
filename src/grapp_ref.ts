@@ -22,14 +22,6 @@ import { getGrappMeta, GrappMeta, GrappTarget } from './grapp';
 import { OperationMeta } from './operation';
 import { OperationRef } from './operation_ref';
 
-export interface GraphQLResolver<T = any> {
-  (
-    args: { [key: string]: any },
-    context: { [key: string]: any },
-    info: GraphQLResolveInfo
-  ): T|Promise<T>
-}
-
 export interface GrappSchemaDefs {
   query: FieldDefinitionNode[]
   mutation: FieldDefinitionNode[]
@@ -99,13 +91,21 @@ export class GrappRef {
       if (['Mutation', 'Query'].indexOf(def.name.value) >= 0) {
         resolverMap[def.name.value] = {};
         for (const fieldDef of def.fields) {
+          let operationInstance: TypeInstance;
           let fieldRef: FieldRef;
           for (const operationRef of this.operationRefs)
             if (operationRef.fields.has(fieldDef.name.value)) {
+              operationInstance = operationRef.instanciate({});
               fieldRef = operationRef.fields.get(fieldDef.name.value);
               break;
             }
-          if (fieldRef) resolverMap[def.name.value][fieldDef.name.value] = fieldRef.resolve.bind(fieldRef);
+          if (fieldRef) {
+            resolverMap[def.name.value][fieldDef.name.value] = (
+              <GraphQLFieldResolver>(instance: any, args, context, info) => {
+                fieldRef.resolve(operationInstance, args, context, info);
+              }
+            );
+          }
           else {
             if (fieldDef.type.kind !== 'NonNullType')
               throw new TypeError(def.name.value + ' fields must be NonNullType');
