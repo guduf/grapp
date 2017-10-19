@@ -102,7 +102,7 @@ export class GrappRef {
           if (fieldRef) {
             resolverMap[def.name.value][fieldDef.name.value] = (
               <GraphQLFieldResolver>(instance: any, args, context, info) => {
-                fieldRef.resolve(operationInstance, args, context, info);
+                return fieldRef.resolve(operationInstance, args, context, info);
               }
             );
           }
