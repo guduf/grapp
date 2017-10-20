@@ -89,7 +89,7 @@ export class DocOpeRef<I = TypeInstance> extends TypeRef {
         }
       }
     }
-    const id = shortid();
+    const id = body['id'] || shortid();
     await this.collection.insertOne({...body, id});
     return this.grappRef.root.typer(this.targetMeta.selector, {id});
   }
