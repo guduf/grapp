@@ -26,4 +26,5 @@ export declare class DocOpeRef<I = TypeInstance> extends TypeRef {
     private _createDoc({candidate});
     private _removeDoc({id});
     private _updateDoc({id, update});
+    private _validateDoc(candidate);
 }

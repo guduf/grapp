@@ -9,7 +9,9 @@ import {
   REMOVE_DOC,
   RemoveDoc,
   UPDATE_DOC,
-  UpdateDoc
+  UpdateDoc,
+  VALIDATE_DOC,
+  ValidateDoc
 } from './di';
 import { DOC_DATA, DocMeta, DocOpeMeta} from './doc';
 import { FieldMeta, mapFieldMeta } from './fields';
@@ -57,8 +59,8 @@ export class DocOpeRef<I = TypeInstance> extends TypeRef {
       {provide: COLLECTION, useValue: this.collection},
       {provide: CREATE_DOC, useValue: <CreateDoc>(args) => this._createDoc(args)},
       {provide: REMOVE_DOC, useValue: <RemoveDoc>(args) => this._removeDoc(args)},
-      {provide: UPDATE_DOC, useValue: <UpdateDoc>(args) => this._updateDoc(args)}
-
+      {provide: UPDATE_DOC, useValue: <UpdateDoc>(args) => this._updateDoc(args)},
+      {provide: VALIDATE_DOC, useValue: <ValidateDoc>(candidate) => this._validateDoc(candidate)}
     ]);
     const instance: TypeInstance = injector.resolveAndInstantiate(this.target);
     for (const [key, fieldRef] of this.fields)
@@ -117,5 +119,26 @@ export class DocOpeRef<I = TypeInstance> extends TypeRef {
     }
     await this.collection.updateOne({id}, {$set: body});
     return this.grappRef.root.typer(this.targetMeta.selector, {id});
+  }
+
+  private _validateDoc(candidate: { [key: string]: any }): { [key: string]: any } {
+    const body: { [key: string]: any } = {};
+    for (const [fieldName, fieldMeta] of this.targetFields) if (fieldMeta instanceof DataFieldMeta) {
+      const value = candidate[fieldName];
+      if (typeof value === 'undefined') {
+        if (fieldMeta.required) throw new TypeError(`Required field [${fieldName}]`);
+      } else {
+        try {
+          if (fieldMeta.isArray) {
+            if (!Array.isArray(value)) throw new TypeError(`Invalid Array`);
+            for (const val of value) validate(val, ...fieldMeta.validators);
+          }
+          else validate(value, ...fieldMeta.validators);
+        }
+        catch (err) { throw new Error(`${this.targetMeta.selector}[${fieldName}]: ${err.message}`)}
+        body[fieldName] = value;
+      }
+    }
+    return body;
   }
 }

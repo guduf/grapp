@@ -34,6 +34,15 @@ export interface RemoveDoc {
         id: string;
     }): Promise<boolean>;
 }
+export declare const VALIDATE_DOC: symbol;
+export declare const ValidateDoc: ParameterDecorator;
+export interface ValidateDoc {
+    (candidate: {
+        [key: string]: any;
+    }): Promise<{
+        [key: string]: any;
+    }>;
+}
 export declare const TYPER: symbol;
 export declare const Typer: ParameterDecorator;
 export interface Typer {

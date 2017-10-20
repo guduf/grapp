@@ -37,6 +37,14 @@ export interface RemoveDoc {
   (args: { id: string }): Promise<boolean>
 }
 
+export const VALIDATE_DOC = Symbol('VALIDATE_DOC');
+
+export const ValidateDoc: ParameterDecorator = Inject(VALIDATE_DOC);
+
+export interface ValidateDoc {
+  (candidate: { [key: string]: any }): Promise<{ [key: string]: any }>
+}
+
 export const TYPER = Symbol('TYPER');
 
 export const Typer: ParameterDecorator = Inject(TYPER);
