@@ -8,7 +8,7 @@ import {
   Doc,
   DocMutation,
   DocQuery
-} from '../../../dist/index';
+} from '../../../lib';
 
 import { MediafixUser } from './MediafixUser';
 import { Orga } from './Orga';
@@ -62,7 +62,7 @@ export class TokenTask {
   }
 }
 
-@DocQuery({docTarget: TokenTask})
+@DocQuery({docTarget: () => TokenTask})
 export class TokenTaskQuery {
   private constructor(
     @Typer private _typer: Typer,
@@ -102,7 +102,7 @@ export class TokenTaskQuery {
   }
 }
 
-@DocMutation({docTarget: TokenTask})
+@DocMutation({docTarget: () => TokenTask})
 export class TokenTaskMutation {
   private constructor(
     @Typer private _typer: Typer,

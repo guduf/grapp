@@ -7,7 +7,7 @@ import {
   DocMutation,
   DocQuery,
   Typer
-} from '../../../dist/index';
+} from '../../../lib';
 
 import { Orga, OrgaQuery } from './orga';
 import { User } from './user';
@@ -40,7 +40,7 @@ export class OrgaUser extends User {
   }
 }
 
-@DocQuery({docTarget: OrgaUser})
+@DocQuery({docTarget: () => OrgaUser})
 export class OrgaUserQuery {
   constructor(
     @Collection private _collection: Collection,

@@ -9,7 +9,7 @@ import {
   DocMutation,
   DocQuery,
   Typer
-} from '../../../dist/index';
+} from '../../../lib';
 
 import { OrgaUser, OrgaUserQuery } from './OrgaUser';
 import { TokenPurchase, TokenPurchaseQuery } from './TokenPurchase';
@@ -49,7 +49,7 @@ export class Orga {
   }
 }
 
-@DocQuery({docTarget: Orga})
+@DocQuery({docTarget: () => Orga})
 export class OrgaQuery {
   constructor(
     @Collection private _collection: Collection,
@@ -68,7 +68,7 @@ export class OrgaQuery {
   }
 }
 
-@DocMutation({docTarget: Orga})
+@DocMutation({docTarget: () => Orga})
 export class OrgaMutation {
   constructor(
     @Collection private _collection: Collection,

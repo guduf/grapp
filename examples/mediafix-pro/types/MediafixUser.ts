@@ -8,7 +8,7 @@ import {
   Payload,
   Type,
   Typer
-} from '../../../dist/index';
+} from '../../../lib';
 
 import { Orga, OrgaQuery } from './orga';
 import { User } from './user';
@@ -36,7 +36,7 @@ export class MediafixUser extends User {
   }
 }
 
-@DocQuery({docTarget: MediafixUser})
+@DocQuery({docTarget: () => MediafixUser})
 export class MediafixUserQuery {
   constructor(
     @Collection private _collection: Collection,

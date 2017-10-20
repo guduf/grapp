@@ -3,7 +3,7 @@ import * as express from 'express';
 import { graphqlExpress, graphiqlExpress } from 'graphql-server-express';
 import { connect } from 'mongodb';
 
-import { bootstrapGrapp, Grapp } from '../../dist/index';
+import { bootstrapGrapp, Grapp } from '../../lib';
 
 import { MediafixUserGrapp } from './types/MediafixUser';
 import { OrgaGrapp } from './types/Orga';

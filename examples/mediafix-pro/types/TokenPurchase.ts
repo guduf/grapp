@@ -7,7 +7,7 @@ import {
   Doc,
   DocMutation,
   DocQuery
-} from '../../../dist/index';
+} from '../../../lib';
 
 import { Orga } from './Orga';
 
@@ -36,7 +36,7 @@ export class TokenPurchase {
   }
 }
 
-@DocQuery({docTarget: TokenPurchase})
+@DocQuery({docTarget: () => TokenPurchase})
 export class TokenPurchaseQuery {
   constructor(
     @Collection private _collection: Collection,
@@ -56,7 +56,7 @@ export class TokenPurchaseQuery {
   }
 }
 
-@DocMutation({docTarget: TokenPurchase})
+@DocMutation({docTarget: () => TokenPurchase})
 export class TokenPurchaseMutation {
   create(): Promise<TokenPurchase> {
     throw new Error('Not implemented')

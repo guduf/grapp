@@ -1,4 +1,4 @@
-import { Data, DataArray } from '../../../dist/index';
+import { Data, DataArray } from '../../../lib';
 export type UserGroup = 'mediafix'|'orga';
 
 export class User {
