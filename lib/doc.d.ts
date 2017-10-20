@@ -16,7 +16,9 @@ export interface DocOpeParams extends TypeParams {
     docTarget: TypeTarget;
 }
 export declare class DocOpeMeta extends TypeMeta {
-    docTarget: TypeTarget;
+    docTarget: {
+        (): TypeTarget;
+    };
     constructor(target: TypeTarget, params: DocOpeParams);
 }
 export declare function decorateDocOpe(params: DocOpeParams): ClassDecorator;

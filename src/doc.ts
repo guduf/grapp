@@ -46,7 +46,7 @@ export interface DocOpeParams extends TypeParams {
 }
 
 export class DocOpeMeta extends TypeMeta {
-  docTarget: TypeTarget;
+  docTarget: { (): TypeTarget };
 
   constructor(target: TypeTarget, params: DocOpeParams) {
     super(target, params, DocOpeRef);

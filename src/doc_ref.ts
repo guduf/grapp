@@ -49,7 +49,7 @@ export class DocOpeRef<I = TypeInstance> extends TypeRef {
 
   constructor(public grappRef: GrappRef, public target: TypeTarget, public meta: DocOpeMeta) {
     super(grappRef, target, meta);
-    this.targetMeta = getTypeMeta<DocMeta>(this.meta.docTarget);
+    this.targetMeta = getTypeMeta<DocMeta>(this.meta.docTarget());
     this.targetFields = mapFieldMeta(this.meta.docTarget);
     this.collection = this.grappRef.root.db.collection(this.targetMeta.collectionName);
   }
