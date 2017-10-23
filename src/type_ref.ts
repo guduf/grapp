@@ -1,18 +1,17 @@
 import { Injector } from './di';
 import { FieldRef, mapFieldMeta , FieldResolver} from './fields';
-import { MethodFieldRef } from './method_field';
 import { GrappRef } from './grapp_ref';
 import { getTypeMeta, TypeMeta, TypeTarget, TypeInstance } from './type';
 
 export const DOC_DATA = Symbol('DOC_DATA');
 
-export class TypeRef<I extends TypeInstance = TypeInstance> {
+export class TypeRef<I extends TypeInstance = TypeInstance, M extends TypeMeta = TypeMeta> {
   injector: Injector;
   fields: Map<string, FieldRef>;
 
   get selector() { return this.meta.selector; }
 
-  constructor(public grappRef: GrappRef, public target: TypeTarget, public meta: TypeMeta) {
+  constructor(public grappRef: GrappRef, public target: TypeTarget, public meta: M) {
     const providers = [...this.meta.providers];
     this.injector = this.grappRef.injector.resolveAndCreateChild(providers);
     const fields = new Map<string, FieldRef>();
@@ -24,7 +23,7 @@ export class TypeRef<I extends TypeInstance = TypeInstance> {
     for (const key of methodKeys) {
       let fieldRef: FieldRef;
       try {
-        fieldRef = new MethodFieldRef(this, key, this.target.prototype[key]);
+        fieldRef = new FieldRef(this, key, this.target.prototype[key]);
       } catch (err) {
         console.error(err);
         throw new Error('Failed to reference Field: ' + key);
@@ -45,10 +44,15 @@ export class TypeRef<I extends TypeInstance = TypeInstance> {
     this.fields = fields;
   }
 
-  instanciate(payload: { [key: string]: any }): TypeInstance {
-    const instance: TypeInstance = this.injector.resolveAndInstantiate(this.target);
-    for (const [key, fieldRef] of this.fields)
-      if (fieldRef.defineProperty) fieldRef.defineProperty(instance);
+  instanciate(payload: { [key: string]: any }): I {
+    const instance: I = this.injector.resolveAndInstantiate(this.target);
+    for (const [key, fieldRef] of this.fields) if (fieldRef.defineValue)
+      Object.defineProperty(instance, key, {
+        value: fieldRef.defineValue(instance),
+        enumerable: true,
+        configurable: false,
+        writable: false
+       });
     return instance;
   }
 }

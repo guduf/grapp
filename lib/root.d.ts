@@ -1,7 +1,7 @@
 import { GraphQLSchema } from 'graphql';
 import { Db } from './db';
 import { Injector, Provider } from './di';
-import { GrappTarget } from './grapp';
+import { GrappMeta, GrappTarget } from './grapp';
 import { GrappRef } from './grapp_ref';
 import { TypeInstance } from './type';
 import { TypeRef } from './type_ref';
@@ -9,12 +9,12 @@ export interface RootParams {
     db: Db;
     providers?: Provider[];
 }
-export declare class GrappRoot {
+export declare class Root {
     private _target;
     private _params;
     constructor(_target: GrappTarget | GrappTarget[], _params: RootParams);
     injector: Injector;
-    grappRefs: Map<any, GrappRef>;
+    grappRefs: Map<any, GrappRef<GrappMeta>>;
     schema: GraphQLSchema;
     readonly db: Db;
     registerGrappRef(target: GrappTarget): GrappRef;
@@ -24,4 +24,4 @@ export declare class GrappRoot {
     }): TypeInstance;
     build(): GraphQLSchema;
 }
-export declare function bootstrapGrapp(target: GrappTarget, params: RootParams): Promise<GraphQLSchema>;
+export declare function bootstrapGrapp(target: GrappTarget, params: RootParams): GraphQLSchema;

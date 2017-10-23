@@ -1,12 +1,10 @@
 import { DocInstance, DOC_DATA } from './doc';
-import { DocRef } from './doc_ref';
-import { decorateField, FieldContext, FieldMeta, FieldRef } from './fields';
-import { TypeInstance } from './type';
+import { DocTypeRef } from './doc_ref';
+import { setFieldMeta, FieldMeta, FieldRef } from './fields';
+import { TypeInstance, TypeTarget } from './type';
 import { validate, Validator, Validators } from './validators';
 
-export type DataFieldShortOptions = '000'|'001'|'010'|'011'|'100'|'101'|'110'|'111';
-
-export interface DataFieldOptions {
+export interface DataFieldOpts {
   required?: boolean;
   inputable?: boolean;
   updatable?: boolean;
@@ -15,58 +13,54 @@ export interface DataFieldOptions {
   upd?: boolean|0|1;
 }
 
-export class DataFieldMeta implements FieldMeta, DataFieldOptions {
+export interface DataFieldParams extends DataFieldOpts {
+  validators: Validator[];
+  isArray: boolean;
+}
+
+export class DataFieldMeta extends FieldMeta {
   constructor (
-    public validators: Validator[],
-    opts: DataFieldOptions|DataFieldShortOptions = {},
-    public isArray = false
+    target: TypeTarget,
+    key: string,
+    params: DataFieldParams
   ) {
-    if (!Array.isArray(validators) || validators.filter(val => typeof val !== 'function').length)
+    super(target, key, params, <typeof FieldRef>DataFieldRef);
+
+    if (!Array.isArray(params.validators) || params.validators.filter(val => typeof val !== 'function').length)
       throw new TypeError('(validators) is not array of function');
-    if (typeof opts === 'string') {
-      if (!/^[01]{3}$/.test(opts)) throw new Error('Invalid Short Opts');
-      this.required = opts[0] === '1';
-      this.inputable = opts[1] === '1';
-      this.updatable = opts[2] === '1';
-    } else {
-      const _opts = ['required', 'inputable', 'updatable'];
-      for (const opt of _opts)
-        if (typeof opts[opt] === 'boolean') this[opt] = opts[opt];
-        else if (
-          typeof opts[opt.slice(0, 3)] === 'boolean' ||
-          [0, 1].indexOf(opts[opt.slice(0, 3)]) > -1
-        ) this[opt] = Boolean(opts[opt.slice(0, 3)]);
-        else this[opt] = true;
-    }
+    this.validators = params.validators;
+    this.isArray = params.isArray;
+
+    const _opts = ['required', 'inputable', 'updatable'];
+    for (const opt of _opts)
+      if (typeof params[opt] === 'boolean') this[opt] = params[opt];
+      else if (
+        typeof params[opt.slice(0, 3)] === 'boolean' ||
+        [0, 1].indexOf(params[opt.slice(0, 3)]) > -1
+      ) this[opt] = Boolean(params[opt.slice(0, 3)]);
+      else this[opt] = true;
   }
 
-  FieldRefClass = DataFieldRef;
   required: boolean;
   inputable: boolean;
   updatable: boolean;
+  validators: Validator[]
+  isArray: boolean;
 }
 
-export class DataFieldRef implements FieldRef {
-  constructor(
-    public typeRef: DocRef,
-    public key: string,
-    public meta: DataFieldMeta
-  ) { }
-
-  defineProperty(instance: TypeInstance) {
-     const descriptor: PropertyDescriptor = {
-      get: () => { return this.resolve(instance); },
-      set: (newValue: any) => { throw new Error('You cant set a decorated property') },
-      enumerable: true,
-      configurable: false
-     }
-     Object.defineProperty(instance, this.key, descriptor);
+export class DataFieldRef<R = any> extends FieldRef<DocTypeRef, DataFieldMeta, R> {
+  constructor(typeRef: DocTypeRef, key: string, meta: DataFieldMeta) {
+    super(typeRef, key, meta);
+    if (!(this.typeRef instanceof DocTypeRef))
+      throw new Error('typeRef must be instance DocTypeRef for RelationFieldRef');
   }
 
-  async resolve(instance: TypeInstance): Promise<any> {
+  defineValue = instance => () => this._fetchData(instance);
+
+  private async _fetchData(instance: TypeInstance): Promise<R> {
     const typeData: { id: string, [key: string]: any } = instance[DOC_DATA];
     if (typeData[this.key]) return typeData[this.key];
-    const data = await this.typeRef.collection.findOne({id: typeData.id}, {fields: {[this.key]: true}});
+    const data = await this.typeRef.grappRef.collection.findOne({id: typeData.id}, {fields: {[this.key]: true}});
     if (!data) throw new Error(`Can't fetch data for field [${this.key}] of type: ${this.typeRef.selector}`);
     instance[DOC_DATA] = {...typeData, ...data};
     return instance[DOC_DATA][this.key];
@@ -74,11 +68,14 @@ export class DataFieldRef implements FieldRef {
 }
 
 function buildDataFieldDecorator(
-  validators: Validator[], isArray = false
-): { (opts: DataFieldOptions|DataFieldShortOptions): PropertyDecorator } {
-  return function decorateDataField(opts: DataFieldOptions|DataFieldShortOptions): PropertyDecorator {
-    const meta = new DataFieldMeta(validators, opts, isArray);
-    return decorateField(meta);
+  validators: Validator[],
+  isArray = false
+): { (opts: DataFieldOpts): PropertyDecorator } {
+  return (opts: DataFieldOpts): PropertyDecorator => {
+    return function fieldDecorator(target: any, key: string) {
+      const meta = new DataFieldMeta(target, key, {...opts, validators, isArray});
+      setFieldMeta(target, key, meta);
+    }
   }
 }
 

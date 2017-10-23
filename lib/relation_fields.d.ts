@@ -1,31 +1,27 @@
-import { DocRef } from './doc_ref';
-import { TypeInstance } from './type';
+import { DocTypeRef } from './doc_ref';
 import { FieldMeta, FieldRef } from './fields';
+import { TypeInstance, TypeTarget } from './type';
 export declare type RelationFieldKind = 'btm' | 'bto' | 'hm' | 'ho';
-export declare class RelationFieldMeta implements FieldMeta {
+export interface RelationFieldParams {
     kind: RelationFieldKind;
     foreignSelector: string;
     query: Object;
-    constructor(kind: RelationFieldKind, foreignSelector: string, query: Object);
-    FieldRefClass: typeof RelationFieldRef;
 }
-export declare class RelationFieldRef implements FieldRef {
-    typeRef: DocRef;
-    key: string;
-    meta: RelationFieldMeta;
-    constructor(typeRef: DocRef, key: string, meta: RelationFieldMeta);
-    defineProperty(instance: TypeInstance): void;
-    resolve(instance: TypeInstance): Promise<TypeInstance | TypeInstance[]>;
+export declare class RelationFieldMeta extends FieldMeta implements RelationFieldParams {
+    constructor(target: TypeTarget, key: string, params: RelationFieldParams);
+    kind: RelationFieldKind;
+    foreignSelector: string;
+    query: Object;
+}
+export declare class RelationFieldRef extends FieldRef<DocTypeRef, RelationFieldMeta> {
+    constructor(typeRef: DocTypeRef, key: string, meta: RelationFieldMeta);
+    defineValue: (instance: any) => () => Promise<TypeInstance | TypeInstance[]>;
     private _fetchData(instance);
 }
-export declare function buildRelationFieldDecorator(kind: RelationFieldKind, foreignSelector: string, query?: Object): PropertyDecorator;
-export declare function belongsToMany(selector: string, query?: Object): PropertyDecorator;
-export declare function belongsToOne(selector: string, query?: Object): PropertyDecorator;
-export declare function hasMany(selector: string, query?: Object): PropertyDecorator;
-export declare function hasOne(selector: string, query?: Object): PropertyDecorator;
+export declare function buildRelationFieldDecorator(kind: RelationFieldKind): PropertyDecorator;
 export declare const Relation: {
-    belongsToMany: (selector: string, query?: Object) => PropertyDecorator;
-    belongsToOne: (selector: string, query?: Object) => PropertyDecorator;
-    hasMany: (selector: string, query?: Object) => PropertyDecorator;
-    hasOne: (selector: string, query?: Object) => PropertyDecorator;
+    belongsToMany: PropertyDecorator;
+    belongsToOne: PropertyDecorator;
+    hasMany: PropertyDecorator;
+    hasOne: PropertyDecorator;
 };

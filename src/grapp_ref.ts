@@ -12,11 +12,11 @@ import {
   parse as parseSchema
 } from 'graphql';
 
-import { GrappRoot } from './root';
+import { Root } from './root';
 import { Db, Collection } from './db';
-import { Injector, Provider, COLLECTION } from './di';
-import { FieldRef, FieldResolver } from './fields';
-import { getTypeMeta, TypeInstance } from './type';
+import { Injector, Provider } from './di';
+import { FieldRef } from './fields';
+import { getTypeMeta, TypeInstance, TypeTarget } from './type';
 import { TypeRef } from './type_ref';
 import { getGrappMeta, GrappMeta, GrappTarget } from './grapp';
 import { OperationMeta } from './operation';
@@ -29,19 +29,14 @@ export interface GrappSchemaDefs {
   misc: DefinitionNode[]
 }
 
-export class GrappRef {
+export class GrappRef<M extends GrappMeta = GrappMeta> {
   collection: Collection;
   operationRefs: Set<OperationRef>;
   typeRefs: Map<string, TypeRef>;
-  meta: GrappMeta;
   imports: GrappRef[];
   injector: Injector;
 
-  constructor(public target: GrappTarget, public root: GrappRoot) {
-    this.meta = getGrappMeta(target);
-    if (typeof this.meta !== 'object') throw new ReferenceError(
-      'The target has not been decorated as Grapp: ' + (target.name || typeof target)
-    );
+  constructor(public root: Root, public target: GrappTarget, public meta: M) {
     this.imports = this.meta.imports.map(grappTarget => this.root.registerGrappRef(grappTarget));
     const providers = [...this.meta.providers];
     this.injector = this.root.injector.resolveAndCreateChild(providers);
@@ -49,36 +44,31 @@ export class GrappRef {
     for (const grappRef of this.imports)
       for (const [key, typeRef] of grappRef.typeRefs) typeRefs.set(key, typeRef);
     for (const target of this.meta.types) {
-      const meta = getTypeMeta(target);
-      let typeRef: TypeRef;
-      try {
-        if (meta.TypeRefClass) typeRef = new meta.TypeRefClass(this, target, meta);
-        else typeRef = new TypeRef(this, target, meta);
-      } catch (err) {
-        console.error(err);
-        throw new Error(
-          'Failed to reference Type: ' + (target.name ? target.name : typeof target)
-        );
-      }
+      const typeRef = this.referenceType(target);
       typeRefs.set(typeRef.selector, typeRef);
     }
     this.typeRefs = typeRefs;
     const operationRefs = new Set<OperationRef>();
     for (const target of this.meta.operations) {
-      const meta = getTypeMeta<OperationMeta>(target);
-      if (typeof this.meta !== 'object') throw new ReferenceError(
-        'The target has not been decorated as Grapp: ' + (target.name || typeof target)
-      );
-      let operationRef: OperationRef
-      try { operationRef = new OperationRef(this, target, meta); } catch (err) {
-        console.error(err);
-        throw new Error(
-          'Failed to reference Type: ' + (target.name ? target.name : typeof target)
-        );
-      }
+      const operationRef = this.referenceType<OperationRef>(target);
       operationRefs.add(operationRef);
     }
     this.operationRefs = operationRefs;
+  }
+
+  referenceType<R extends TypeRef = TypeRef>(target: TypeTarget): R {
+    const meta = getTypeMeta(target);
+    if (!meta) throw new Error(
+      'Failed to find meta for Type: ' + (target.name ? target.name : typeof target)
+    )
+    let typeRef: R;
+    try { typeRef = <R>new meta.TypeRefClass(this, target, meta); } catch (err) {
+      console.error(err);
+      throw new Error(
+        'Failed to reference Type: ' + (target.name ? target.name : typeof target)
+      );
+    }
+    return typeRef;
   }
 
   parse(): { docNode: DocumentNode, resolverMap: { [key: string]: { [key: string]: any } } } {

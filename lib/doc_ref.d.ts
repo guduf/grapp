@@ -1,30 +1,31 @@
+import { DataFieldMeta } from './data_fields';
 import { Collection } from './db';
-import { DocMeta, DocOpeMeta } from './doc';
-import { FieldMeta } from './fields';
+import { DocMeta, DocInstance } from './doc';
+import { GrappTarget } from './grapp';
 import { GrappRef } from './grapp_ref';
-import { TypeInstance, TypeTarget } from './type';
+import { OperationKind } from './operation';
+import { OperationRef } from './operation_ref';
+import { Root } from './root';
+import { TypeTarget } from './type';
 import { TypeRef } from './type_ref';
-export declare class DocRef<I = TypeInstance> extends TypeRef {
-    grappRef: GrappRef;
-    target: TypeTarget;
-    meta: DocMeta;
+export declare class DocRef<D = DocInstance> extends GrappRef<DocMeta> {
+    constructor(root: Root, target: GrappTarget, meta: DocMeta);
     collection: Collection;
-    constructor(grappRef: GrappRef, target: TypeTarget, meta: DocMeta);
-    instanciate<I extends TypeInstance = TypeInstance>(payload: {
-        id: string;
-    }): I;
+    dataFields: Map<string, DataFieldMeta>;
+    docOperationRefs: Map<OperationKind, OperationRef>;
+    docTypeRef: DocTypeRef<D>;
+    private create(candidate);
+    private find(query);
+    private findOne(query);
+    private remove(id);
+    private update(id, update);
+    private validate(candidate);
+    private _instanciate(id);
 }
-export declare class DocOpeRef<I = TypeInstance> extends TypeRef {
-    grappRef: GrappRef;
-    target: TypeTarget;
-    meta: DocOpeMeta;
-    targetMeta: DocMeta;
-    targetFields: Map<string, FieldMeta>;
-    collection: Collection;
-    constructor(grappRef: GrappRef, target: TypeTarget, meta: DocOpeMeta);
-    instanciate(): TypeInstance;
-    private _createDoc({candidate});
-    private _removeDoc({id});
-    private _updateDoc({id, update});
-    private _validateDoc(candidate);
+export declare class DocTypeRef<D = DocInstance> extends TypeRef<D, DocMeta> {
+    constructor(grappRef: DocRef<D>, target: TypeTarget, meta: DocMeta);
+    grappRef: DocRef<D>;
+    instanciate(payload: {
+        id: string;
+    }): D;
 }

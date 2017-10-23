@@ -1,6 +1,5 @@
 import { Injectable, Provider } from './di';
 import { TypeRef } from './type_ref';
-import { GrappContext } from './grapp';
 import { defineMeta, getMeta } from './meta';
 
 export type TypeTarget = any;
@@ -16,12 +15,10 @@ export interface TypeParams {
 }
 
 export class TypeMeta implements TypeParams {
-  providers: Provider[];
-  selector: string;
   constructor(
     target: TypeTarget,
     params: TypeParams,
-    public TypeRefClass?: typeof TypeRef
+    public TypeRefClass: typeof TypeRef  = TypeRef
   ) {
     if (typeof params !== 'object') throw new TypeError('Params is not a object');
     this.providers  = params.providers || [];
@@ -29,6 +26,9 @@ export class TypeMeta implements TypeParams {
     else if (target.name) this.selector = target.name;
     else throw new Error('Selector is not defined');
   }
+
+  providers: Provider[];
+  selector: string;
 }
 
 const TYPE_META = Symbol('TYPE_META');
@@ -40,7 +40,7 @@ export function decorateType(params: TypeParams = {}): ClassDecorator {
 }
 
 export function setTypeMeta(target: TypeTarget, meta: TypeMeta) {
-  if (!(meta instanceof TypeMeta)) throw new TypeError('meta is not a instance of TypeMeta');
+  if (!(meta instanceof TypeMeta)) throw new TypeError(`meta is not a instance of TypeMeta: ${target.name || typeof target}`);
   Injectable()(target);
   defineMeta(meta, TYPE_META, target);
 }

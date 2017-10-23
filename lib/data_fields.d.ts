@@ -1,9 +1,8 @@
-import { DocRef } from './doc_ref';
+import { DocTypeRef } from './doc_ref';
 import { FieldMeta, FieldRef } from './fields';
-import { TypeInstance } from './type';
+import { TypeTarget } from './type';
 import { Validator } from './validators';
-export declare type DataFieldShortOptions = '000' | '001' | '010' | '011' | '100' | '101' | '110' | '111';
-export interface DataFieldOptions {
+export interface DataFieldOpts {
     required?: boolean;
     inputable?: boolean;
     updatable?: boolean;
@@ -11,42 +10,42 @@ export interface DataFieldOptions {
     inp?: boolean | 0 | 1;
     upd?: boolean | 0 | 1;
 }
-export declare class DataFieldMeta implements FieldMeta, DataFieldOptions {
+export interface DataFieldParams extends DataFieldOpts {
     validators: Validator[];
     isArray: boolean;
-    constructor(validators: Validator[], opts?: DataFieldOptions | DataFieldShortOptions, isArray?: boolean);
-    FieldRefClass: typeof DataFieldRef;
+}
+export declare class DataFieldMeta extends FieldMeta {
+    constructor(target: TypeTarget, key: string, params: DataFieldParams);
     required: boolean;
     inputable: boolean;
     updatable: boolean;
+    validators: Validator[];
+    isArray: boolean;
 }
-export declare class DataFieldRef implements FieldRef {
-    typeRef: DocRef;
-    key: string;
-    meta: DataFieldMeta;
-    constructor(typeRef: DocRef, key: string, meta: DataFieldMeta);
-    defineProperty(instance: TypeInstance): void;
-    resolve(instance: TypeInstance): Promise<any>;
+export declare class DataFieldRef<R = any> extends FieldRef<DocTypeRef, DataFieldMeta, R> {
+    constructor(typeRef: DocTypeRef, key: string, meta: DataFieldMeta);
+    defineValue: (instance: any) => () => Promise<R>;
+    private _fetchData(instance);
 }
 export declare const Data: {
-    boolean: (opts: DataFieldOptions | "000" | "001" | "010" | "011" | "100" | "101" | "110" | "111") => PropertyDecorator;
-    color: (opts: DataFieldOptions | "000" | "001" | "010" | "011" | "100" | "101" | "110" | "111") => PropertyDecorator;
-    date: (opts: DataFieldOptions | "000" | "001" | "010" | "011" | "100" | "101" | "110" | "111") => PropertyDecorator;
-    email: (opts: DataFieldOptions | "000" | "001" | "010" | "011" | "100" | "101" | "110" | "111") => PropertyDecorator;
-    float: (opts: DataFieldOptions | "000" | "001" | "010" | "011" | "100" | "101" | "110" | "111") => PropertyDecorator;
-    shortid: (opts: DataFieldOptions | "000" | "001" | "010" | "011" | "100" | "101" | "110" | "111") => PropertyDecorator;
-    int: (opts: DataFieldOptions | "000" | "001" | "010" | "011" | "100" | "101" | "110" | "111") => PropertyDecorator;
-    string: (opts: DataFieldOptions | "000" | "001" | "010" | "011" | "100" | "101" | "110" | "111") => PropertyDecorator;
-    custom(...validators: Validator[]): (opts: DataFieldOptions | "000" | "001" | "010" | "011" | "100" | "101" | "110" | "111") => PropertyDecorator;
+    boolean: (opts: DataFieldOpts) => PropertyDecorator;
+    color: (opts: DataFieldOpts) => PropertyDecorator;
+    date: (opts: DataFieldOpts) => PropertyDecorator;
+    email: (opts: DataFieldOpts) => PropertyDecorator;
+    float: (opts: DataFieldOpts) => PropertyDecorator;
+    shortid: (opts: DataFieldOpts) => PropertyDecorator;
+    int: (opts: DataFieldOpts) => PropertyDecorator;
+    string: (opts: DataFieldOpts) => PropertyDecorator;
+    custom(...validators: Validator[]): (opts: DataFieldOpts) => PropertyDecorator;
 };
 export declare const DataArray: {
-    boolean: (opts: DataFieldOptions | "000" | "001" | "010" | "011" | "100" | "101" | "110" | "111") => PropertyDecorator;
-    color: (opts: DataFieldOptions | "000" | "001" | "010" | "011" | "100" | "101" | "110" | "111") => PropertyDecorator;
-    date: (opts: DataFieldOptions | "000" | "001" | "010" | "011" | "100" | "101" | "110" | "111") => PropertyDecorator;
-    email: (opts: DataFieldOptions | "000" | "001" | "010" | "011" | "100" | "101" | "110" | "111") => PropertyDecorator;
-    float: (opts: DataFieldOptions | "000" | "001" | "010" | "011" | "100" | "101" | "110" | "111") => PropertyDecorator;
-    shortid: (opts: DataFieldOptions | "000" | "001" | "010" | "011" | "100" | "101" | "110" | "111") => PropertyDecorator;
-    int: (opts: DataFieldOptions | "000" | "001" | "010" | "011" | "100" | "101" | "110" | "111") => PropertyDecorator;
-    string: (opts: DataFieldOptions | "000" | "001" | "010" | "011" | "100" | "101" | "110" | "111") => PropertyDecorator;
-    custom(...validators: Validator[]): (opts: DataFieldOptions | "000" | "001" | "010" | "011" | "100" | "101" | "110" | "111") => PropertyDecorator;
+    boolean: (opts: DataFieldOpts) => PropertyDecorator;
+    color: (opts: DataFieldOpts) => PropertyDecorator;
+    date: (opts: DataFieldOpts) => PropertyDecorator;
+    email: (opts: DataFieldOpts) => PropertyDecorator;
+    float: (opts: DataFieldOpts) => PropertyDecorator;
+    shortid: (opts: DataFieldOpts) => PropertyDecorator;
+    int: (opts: DataFieldOpts) => PropertyDecorator;
+    string: (opts: DataFieldOpts) => PropertyDecorator;
+    custom(...validators: Validator[]): (opts: DataFieldOpts) => PropertyDecorator;
 };

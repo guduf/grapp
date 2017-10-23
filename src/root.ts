@@ -10,7 +10,7 @@ import { addResolveFunctionsToSchema } from 'graphql-tools';
 
 import { Db } from './db';
 import { Injector, Provider, TYPER } from './di';
-import { GrappTarget } from './grapp';
+import { GrappMeta, GrappTarget, getGrappMeta } from './grapp';
 import { GrappRef } from './grapp_ref';
 import { TypeInstance } from './type';
 import { TypeRef } from './type_ref';
@@ -20,7 +20,7 @@ export interface RootParams {
   providers?: Provider[]
 }
 
-export class GrappRoot {
+export class Root {
   constructor(
     private _target: GrappTarget|GrappTarget[],
     private _params: RootParams
@@ -40,7 +40,8 @@ export class GrappRoot {
 
   registerGrappRef(target: GrappTarget): GrappRef {
     if (this.grappRefs.has(target)) return this.grappRefs.get(target);
-    const grappRef = new GrappRef(target, this);
+    const grappMeta = getGrappMeta(target);
+    const grappRef = new grappMeta.ctor(this, target, grappMeta);
     this.grappRefs.set(target, grappRef);
     return grappRef;
   }
@@ -106,8 +107,7 @@ export class GrappRoot {
   }
 }
 
-export async function bootstrapGrapp(target: GrappTarget, params: RootParams): Promise<GraphQLSchema> {
-  let grappRef: GrappRef;
-  const root = new GrappRoot(target, params);
+export function bootstrapGrapp(target: GrappTarget, params: RootParams): GraphQLSchema {
+  const root = new Root(target, params);
   return root.build();
 }

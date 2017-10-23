@@ -1,6 +1,11 @@
 {
   "compileOnSave": false,
   "compilerOptions": {
+    "lib": [
+      "esnext",
+      "dom"
+    ],
+    "outDir": "../dist",
     "sourceMap": true,
     "declaration": true,
     "module": "commonjs",
