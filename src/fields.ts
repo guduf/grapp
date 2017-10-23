@@ -1,5 +1,7 @@
 import { GraphQLResolveInfo, GraphQLFieldResolver } from 'graphql';
+import { Observable } from 'rxjs/Observable';
 
+import { OperationRef } from './operation_ref';
 import { TypeInstance, TypeTarget } from './type';
 import { TypeRef } from './type_ref';
 import { defineMetaKey, mapMeta, Meta } from './meta';
@@ -13,6 +15,15 @@ export interface FieldResolver<R = any, C = { [key: string]: any }> extends Grap
     context: any,
     info: GraphQLResolveInfo
   ): R|Promise<R>
+}
+
+export interface FieldSubscriptionResolver<R = any, C = { [key: string]: any }> extends GraphQLFieldResolver<TypeInstance, C> {
+  (
+    source: {},
+    args: { [key: string]: any },
+    context: any,
+    info: GraphQLResolveInfo
+  ): AsyncIterator<R>
 }
 
 export class FieldMeta {
@@ -42,7 +53,7 @@ export class FieldRef<
     args: { [key: string]: any },
     context: { [key: string]: any },
     info: GraphQLResolveInfo
-  ): R {
+  ): R|Promise<R> {
     let fieldValue = instance[this.key];
     if (typeof fieldValue === 'undefined') {
       const proto = Object.getPrototypeOf(instance);
@@ -54,6 +65,19 @@ export class FieldRef<
       return fieldValue.call(instance, args, context, info);
     else if (typeof fieldValue !== 'undefined') return fieldValue;
     else throw new Error('fieldValue is undefined');
+  }
+
+  resolveSubscription(
+    instance: TypeInstance,
+    args: { [key: string]: any },
+    context: { [key: string]: any },
+    info: GraphQLResolveInfo
+  ): AsyncIterator<R> {
+    const {pubsub} = this.typeRef.grappRef.root;
+    let fieldValue = this.resolve(instance, args, context, info);
+    if (!(fieldValue instanceof Observable)) throw new Error('fieldValue is not a observable');
+    const sub = fieldValue.subscribe(value => pubsub.publish(`Subscription:${this.key}`, {[this.key]: value}));
+    return this.typeRef.grappRef.root.pubsub.asyncIterator<R>(`Subscription:${this.key}`);
   }
 }
 

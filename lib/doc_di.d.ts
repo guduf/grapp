@@ -1,3 +1,4 @@
+import { Observable } from 'rxjs/Observable';
 import { DocInstance } from './doc';
 import { Collection as dbCollection } from './db';
 export declare const COLLECTION: symbol;
@@ -39,5 +40,17 @@ export declare abstract class DocQuery<D = DocInstance> {
         (query: {
             [key: string]: any;
         }): Promise<D>;
+    };
+}
+export declare abstract class DocSubscription<D = DocInstance> {
+    watch: {
+        (query: {
+            [key: string]: any;
+        }): Observable<D[]>;
+    };
+    watchOne: {
+        (query: {
+            [key: string]: any;
+        }): Observable<D>;
     };
 }

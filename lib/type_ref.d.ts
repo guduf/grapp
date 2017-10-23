@@ -1,4 +1,3 @@
-import { Injector } from './di';
 import { FieldRef } from './fields';
 import { GrappRef } from './grapp_ref';
 import { TypeMeta, TypeTarget, TypeInstance } from './type';
@@ -7,7 +6,6 @@ export declare class TypeRef<I extends TypeInstance = TypeInstance, M extends Ty
     grappRef: GrappRef;
     target: TypeTarget;
     meta: M;
-    injector: Injector;
     fields: Map<string, FieldRef>;
     readonly selector: string;
     constructor(grappRef: GrappRef, target: TypeTarget, meta: M);

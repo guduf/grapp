@@ -1,3 +1,5 @@
+import { Observable } from 'rxjs/Observable';
+
 import { Inject } from './di';
 import { DocInstance } from './doc';
 import { Collection as dbCollection } from './db';
@@ -16,4 +18,9 @@ export abstract class DocMutation<D = DocInstance> {
 export abstract class DocQuery<D = DocInstance> {
   find: { (query: { [key: string]: any }): Promise<D[]> }
   findOne: { (query: { [key: string]: any }): Promise<D> }
+}
+
+export abstract class DocSubscription<D = DocInstance> {
+  watch: { (query: { [key: string]: any }): Observable<D[]> }
+  watchOne: { (query: { [key: string]: any }): Observable<D> }
 }

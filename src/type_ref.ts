@@ -6,14 +6,12 @@ import { getTypeMeta, TypeMeta, TypeTarget, TypeInstance } from './type';
 export const DOC_DATA = Symbol('DOC_DATA');
 
 export class TypeRef<I extends TypeInstance = TypeInstance, M extends TypeMeta = TypeMeta> {
-  injector: Injector;
   fields: Map<string, FieldRef>;
 
   get selector() { return this.meta.selector; }
 
   constructor(public grappRef: GrappRef, public target: TypeTarget, public meta: M) {
     const providers = [...this.meta.providers];
-    this.injector = this.grappRef.injector.resolveAndCreateChild(providers);
     const fields = new Map<string, FieldRef>();
     const methodKeys = Object.getOwnPropertyNames(this.target.prototype).filter(key => {
       if (['constructor'].indexOf(key) >= 0) return false;
@@ -45,7 +43,8 @@ export class TypeRef<I extends TypeInstance = TypeInstance, M extends TypeMeta =
   }
 
   instanciate(payload: { [key: string]: any }): I {
-    const instance: I = this.injector.resolveAndInstantiate(this.target);
+    const injector = this.grappRef.injector.resolveAndCreateChild([...this.meta.providers]);
+    const instance: I = injector.resolveAndInstantiate(this.target);
     for (const [key, fieldRef] of this.fields) if (fieldRef.defineValue)
       Object.defineProperty(instance, key, {
         value: fieldRef.defineValue(instance),

@@ -1,5 +1,4 @@
 import { PubSub } from 'graphql-subscriptions';
-export const pubsub = new PubSub();
 
 import { json } from 'body-parser';
 import * as express from 'express';
@@ -18,8 +17,15 @@ const WS_PORT = 5000;
 
 (async function bootstrap() {
   const db = await mongodb(MONGODB_URI);
-  const schema = bootstrapGrapp(AppGrapp, {db});
-
+  const pubsub = new PubSub();
+  const schema = bootstrapGrapp(AppGrapp, {db, pubsub});
+  // setInterval(
+  //   () => {
+  //     pubsub.publish('FOO_BAR', 'test 1234567890');
+  //     console.log('publish');
+  //   },
+  //   1000
+  // );
   const websocketServer = createServer((request, response) => {
     response.writeHead(404);
     response.end();
@@ -39,7 +45,7 @@ const WS_PORT = 5000;
     schema
   }));
   app.use('/graphiql', graphiqlExpress({
-    endpointURL: '/graphql',
+    endpointURL: './graphql',
     subscriptionsEndpoint: `ws://localhost:${WS_PORT}/graphql`,
   }));
 

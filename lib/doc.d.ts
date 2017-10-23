@@ -9,13 +9,11 @@ export interface DocInstance {
 export interface DocParams extends GrappParams, TypeParams {
     collectionName?: string;
     operations?: TypeTarget[];
-    docOperations?: TypeTarget[];
     selector?: string;
 }
 export declare class DocMeta extends GrappMeta implements TypeMeta {
     constructor(target: TypeTarget, params: DocParams);
     collectionName: string;
-    docOperations: TypeTarget[];
     selector: string;
     TypeRefClass: typeof TypeRef;
 }

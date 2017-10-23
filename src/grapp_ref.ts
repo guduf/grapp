@@ -15,11 +15,11 @@ import {
 import { Root } from './root';
 import { Db, Collection } from './db';
 import { Injector, Provider } from './di';
-import { FieldRef } from './fields';
+import { FieldRef, FieldSubscriptionResolver } from './fields';
 import { getTypeMeta, TypeInstance, TypeTarget } from './type';
 import { TypeRef } from './type_ref';
 import { getGrappMeta, GrappMeta, GrappTarget } from './grapp';
-import { OperationMeta } from './operation';
+import { OperationMeta, OperationKind, OPERATION_KINDS } from './operation';
 import { OperationRef } from './operation_ref';
 
 export interface GrappSchemaDefs {
@@ -78,45 +78,42 @@ export class GrappRef<M extends GrappMeta = GrappMeta> {
       ...this.meta.resolvers
     };
     for (const def of docNode.definitions) if (def.kind === 'ObjectTypeDefinition') {
-      if (['Mutation', 'Query'].indexOf(def.name.value) >= 0) {
-        resolverMap[def.name.value] = {};
+      const selector = def.name.value;
+      if (OPERATION_KINDS.indexOf(<OperationKind>selector) >= 0) {
+        resolverMap[selector] = {};
         for (const fieldDef of def.fields) {
           let operationInstance: TypeInstance;
           let fieldRef: FieldRef;
+          let resolver: any;
           for (const operationRef of this.operationRefs)
             if (operationRef.fields.has(fieldDef.name.value)) {
-              operationInstance = operationRef.instanciate({});
+              operationInstance = operationRef.instance;
               fieldRef = operationRef.fields.get(fieldDef.name.value);
               break;
             }
-          if (fieldRef) {
-            resolverMap[def.name.value][fieldDef.name.value] = (
-              <GraphQLFieldResolver>(instance: any, args, context, info) => {
-                return fieldRef.resolve(operationInstance, args, context, info);
-              }
-            );
+          if (!fieldRef) throw new Error('Missing fieldRef');
+          if (selector === 'Subscription') resolverMap[selector][fieldDef.name.value] = {
+            subscribe: <FieldSubscriptionResolver>(source, args, context, info) => {
+              return fieldRef.resolveSubscription(operationInstance, args, context, info);
+            }
           }
-          else {
-            if (fieldDef.type.kind !== 'NonNullType')
-              throw new TypeError(def.name.value + ' fields must be NonNullType');
-            const selector = (<NamedTypeNode>fieldDef.type.type).name.value;
-            const typeRef = this.typeRefs.get(selector);
-            if (!typeRef)
-              throw new ReferenceError('Cannot find type with selector ' + selector);
-            resolverMap[def.name.value][fieldDef.name.value] = () => typeRef.instanciate({});
-          }
+          else resolverMap[selector][fieldDef.name.value] = (
+            <GraphQLFieldResolver>(source, args, context, info) => {
+              return fieldRef.resolve(operationInstance, args, context, info);
+            }
+          );
         }
       }
       else {
-        const typeRef = this.typeRefs.get(def.name.value);
-        if (!typeRef) throw new ReferenceError('Cannot find type with selector ' + def.name.value);
-        resolverMap[def.name.value] = {};
+        const typeRef = this.typeRefs.get(selector);
+        if (!typeRef) throw new ReferenceError('Cannot find type with selector ' + selector);
+        resolverMap[selector] = {};
         for (const fieldDef of def.fields) {
           const fieldRef = typeRef.fields.get(fieldDef.name.value);
           if (!fieldRef) throw new Error(
             'Cannot find field with this name: ' + fieldDef.name.value + ' for ' + typeRef.selector
           );
-          resolverMap[def.name.value][fieldDef.name.value] = fieldRef.resolve.bind(fieldRef);
+          resolverMap[selector][fieldDef.name.value] = fieldRef.resolve.bind(fieldRef);
         }
       }
     }

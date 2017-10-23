@@ -7,6 +7,7 @@ import {
   DefinitionNode
 } from 'graphql';
 import { addResolveFunctionsToSchema } from 'graphql-tools';
+import { PubSubEngine } from 'graphql-subscriptions';
 
 import { Db } from './db';
 import { Injector, Provider, TYPER } from './di';
@@ -17,26 +18,31 @@ import { TypeRef } from './type_ref';
 
 export interface RootParams {
   db: Db
+  pubsub: PubSubEngine
   providers?: Provider[]
 }
 
 export class Root {
   constructor(
-    private _target: GrappTarget|GrappTarget[],
-    private _params: RootParams
+    target: GrappTarget|GrappTarget[],
+    params: RootParams
   ) {
+    this.db = params.db;
+    this.pubsub = params.pubsub;
+
     this.injector = Injector.resolveAndCreate([
-      ...(_params.providers || []),
+      ...(params.providers || []),
       {provide: TYPER, useValue: this.typer.bind(this)}
     ]);
-    this.registerGrappRef(_target);
+
+    this.registerGrappRef(target);
   }
 
+  db: Db
   injector: Injector;
   grappRefs = new Map<GrappTarget, GrappRef>();
+  pubsub: PubSubEngine
   schema: GraphQLSchema;
-
-  get db() { return this._params.db; }
 
   registerGrappRef(target: GrappTarget): GrappRef {
     if (this.grappRefs.has(target)) return this.grappRefs.get(target);

@@ -16,15 +16,12 @@ export interface DocInstance {
 export interface DocParams extends GrappParams, TypeParams {
   collectionName?: string;
   operations?: TypeTarget[];
-  docOperations?: TypeTarget[];
   selector?: string
 }
 
 export class DocMeta extends GrappMeta implements TypeMeta {
   constructor(target: TypeTarget, params: DocParams) {
     super(target, params, <typeof GrappRef>DocRef);
-
-    this.docOperations =  Array.isArray(params.operations) ? params.operations : [];
 
     if (params.selector) this.selector = params.selector;
     else if (target.name) this.selector = target.name;
@@ -36,7 +33,6 @@ export class DocMeta extends GrappMeta implements TypeMeta {
   }
 
   collectionName: string;
-  docOperations: TypeTarget[];
   selector: string;
   TypeRefClass = <typeof TypeRef>DocTypeRef
 }

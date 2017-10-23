@@ -3,7 +3,8 @@ import { OperationRef } from './operation_ref';
 import { TypeMeta, TypeParams, TypeTarget, setTypeMeta } from './type';
 import { TypeRef } from './type_ref';
 
-export type OperationKind = 'mutation'|'query';
+export type OperationKind = 'Mutation'|'Query'|'Subscription';
+export const OPERATION_KINDS: ['Mutation', 'Query', 'Subscription'] = ['Mutation', 'Query', 'Subscription'];
 
 export interface OperationParams {
   selector?: string
@@ -26,9 +27,13 @@ export function decorateOperation(
 }
 
 export function decorateMutation(params: OperationParams = {}): ClassDecorator {
-  return decorateOperation('mutation', params);
+  return decorateOperation('Mutation', params);
 }
 
 export function decorateQuery(params: OperationParams = {}): ClassDecorator {
-  return decorateOperation('query', params);
+  return decorateOperation('Query', params);
+}
+
+export function decorateSubscription(params: OperationParams = {}): ClassDecorator {
+  return decorateOperation('Subscription', params);
 }

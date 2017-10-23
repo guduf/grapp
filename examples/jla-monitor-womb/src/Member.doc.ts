@@ -1,11 +1,15 @@
+import { Observable } from 'rxjs';
+
 import {
   Doc,
   DocId,
   DocMutation,
   DocQuery,
+  DocSubscription,
   Data,
   Mutation,
-  Query
+  Query,
+  Subscription
 } from '../../../lib';
 
 const schema = `
@@ -14,20 +18,17 @@ const schema = `
     pseudo: String!
   }
 
-  type MemberMutation {
-    create(pseudo: String!): Member
-  }
-
-  type MemberQuery {
-    get(id: ID!): Member
-  }
-
   type Mutation {
-    Member: MemberMutation!
+    createMember(pseudo: String!): Member!
+    removeMember(id: ID!): Boolean!
   }
 
   type Query {
-    Member: MemberQuery!
+    getMember(id: ID!): Member!
+  }
+
+  type Subscription {
+    listMember: [Member]!
   }
 `;
 
@@ -35,8 +36,12 @@ const schema = `
 export class MemberMutation {
   constructor(private _docMutation: DocMutation<Member>) { }
 
-  create({pseudo}: {pseudo: string}): Promise<Member> {
+  createMember({pseudo}: {pseudo: string}): Promise<Member> {
     return this._docMutation.create({pseudo});
+  }
+
+  removeMember({id}: {id: string}): Promise<boolean> {
+    return this._docMutation.remove(id);
   }
 }
 
@@ -44,13 +49,22 @@ export class MemberMutation {
 export class MemberQuery {
   constructor(private _docQuery: DocQuery<Member>) { }
 
-  get({id}: {id: string}): Promise<Member> {
+  getMember({id}: {id: string}): Promise<Member> {
     return this._docQuery.findOne({id});
   }
 }
 
+@Subscription()
+export class MemberSubscription {
+  constructor(private _docSubscription: DocSubscription<Member>) { }
+
+  listMember(): Observable<Member[]> {
+    return this._docSubscription.watch({});
+  }
+}
+
 @Doc({
-  operations: [MemberMutation, MemberQuery],
+  operations: [MemberMutation, MemberQuery, MemberSubscription],
   schema
 })
 export class Member {

@@ -9,6 +9,13 @@ export interface FieldResolver<R = any, C = {
         [key: string]: any;
     }, context: any, info: GraphQLResolveInfo): R | Promise<R>;
 }
+export interface FieldSubscriptionResolver<R = any, C = {
+    [key: string]: any;
+}> extends GraphQLFieldResolver<TypeInstance, C> {
+    (source: {}, args: {
+        [key: string]: any;
+    }, context: any, info: GraphQLResolveInfo): AsyncIterator<R>;
+}
 export declare class FieldMeta {
     FieldRefClass: typeof FieldRef;
     constructor(target: TypeTarget, key: string, params: {
@@ -29,7 +36,12 @@ export declare class FieldRef<T extends TypeRef = TypeRef, M extends FieldMeta =
         [key: string]: any;
     }, context: {
         [key: string]: any;
-    }, info: GraphQLResolveInfo): R;
+    }, info: GraphQLResolveInfo): R | Promise<R>;
+    resolveSubscription(instance: TypeInstance, args: {
+        [key: string]: any;
+    }, context: {
+        [key: string]: any;
+    }, info: GraphQLResolveInfo): AsyncIterator<R>;
 }
 export declare function decorateField(meta: {
     [key: string]: any;
