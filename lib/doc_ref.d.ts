@@ -1,5 +1,7 @@
 import 'rxjs/add/observable/fromPromise';
 import 'rxjs/add/observable/merge';
+import 'rxjs/add/operator/do';
+import 'rxjs/add/operator/filter';
 import 'rxjs/add/operator/map';
 import 'rxjs/add/operator/mergeMap';
 import { Observable } from 'rxjs/Observable';
@@ -34,8 +36,8 @@ export declare class DocRef<D = DocInstance> extends GrappRef<DocMeta> {
     private _remove(id);
     private _update(id, update);
     private _validate(candidate);
-    private _watch(query);
-    private _watchOne(query);
+    private _watch(query, filter?);
+    private _watchOne(query, filter?);
     private _instanciate(id);
 }
 export declare class DocTypeRef<D = DocInstance> extends TypeRef<D, DocMeta> {

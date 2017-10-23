@@ -1,5 +1,7 @@
 import 'rxjs/add/observable/fromPromise';
 import 'rxjs/add/observable/merge';
+import 'rxjs/add/operator/do';
+import 'rxjs/add/operator/filter';
 import 'rxjs/add/operator/map';
 import 'rxjs/add/operator/mergeMap';
 
@@ -8,14 +10,15 @@ import { Observable } from 'rxjs/Observable';
 import { generate as shortid } from 'shortid';
 
 import { DataFieldMeta, DataFieldRef } from './data_fields';
+import { Collection } from './db';
+import { DOC_DATA, DocMeta, DocInstance, checkDocId } from './doc';
 import {
   COLLECTION,
   DocMutation,
   DocQuery,
-  DocSubscription
+  DocSubscription,
+  WatchFilter
 } from './doc_di';
-import { Collection } from './db';
-import { DOC_DATA, DocMeta, DocInstance, checkDocId } from './doc';
 import { GrappTarget } from './grapp';
 import { GrappRef } from './grapp_ref';
 import { OperationKind } from './operation';
@@ -51,8 +54,6 @@ export class DocRef<D = DocInstance> extends GrappRef<DocMeta> {
       this.root.pubsub.subscribe(DOC_EVENT, e => observer.next(e), {});
     });
 
-    this.docEvents.subscribe(console.log);
-
     const docMutation: DocMutation<D> = {
       create: (candidate) => this._create(candidate),
       remove: id => this._remove(id),
@@ -64,8 +65,8 @@ export class DocRef<D = DocInstance> extends GrappRef<DocMeta> {
       findOne: query => this._findOne(query)
     };
     const docSubscription: DocSubscription<D> = {
-      watch: query => this._watch(query),
-      watchOne: query => this._watchOne(query)
+      watch: (query, filter?) => this._watch(query, filter),
+      watchOne: (query, filter?) => this._watchOne(query, filter)
     }
     this.injector = this.injector.resolveAndCreateChild([
       {provide: COLLECTION, useValue: this.collection},
@@ -183,17 +184,40 @@ export class DocRef<D = DocInstance> extends GrappRef<DocMeta> {
     return body;
   }
 
-  private _watch(query: { [key: string]: any }): Observable<D[]> {
+  private _watch(query: { [key: string]: any }, filter?: WatchFilter): Observable<D[]> {
     return Observable.merge(
       Observable.fromPromise(this._find(query)),
-      this.docEvents.mergeMap(e => this._find(query))
+      this.docEvents
+        .mergeMap(e => {
+          if (typeof filter !== 'function') return Promise.resolve(false);
+          let filterResult = <Promise<boolean>>filter(e);
+          if (!(filterResult instanceof Promise)) filterResult = Promise.resolve(filterResult);
+          return filterResult.then(filtered => {
+            if (typeof filtered !== 'boolean') throw new Error('WatchFilter must return a boolean');
+            return filtered;
+          })
+        })
+        .filter(filtered => !filtered)
+        .mergeMap(() => this._find(query))
+        .do(console.log)
     );
   }
 
-  private _watchOne(query: { [key: string]: any }): Observable<D> {
+  private _watchOne(query: { [key: string]: any }, filter?: WatchFilter): Observable<D> {
     return Observable.merge(
       Observable.fromPromise(this._findOne(query)),
-      this.docEvents.mergeMap(e => this._findOne(query))
+      this.docEvents
+        .mergeMap(e => {
+          if (typeof filter !== 'function') return Promise.resolve(false);
+          let filterResult = <Promise<boolean>>filter(e);
+          if (!(filterResult instanceof Promise)) filterResult = Promise.resolve(filterResult);
+          return filterResult.then(filtered => {
+            if (typeof filtered !== 'boolean') throw new Error('WatchFilter must return a boolean');
+            return filtered;
+          })
+        })
+        .filter(filtered => !filtered)
+        .mergeMap(() => this._findOne(query))
     );
   }
 

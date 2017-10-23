@@ -2,11 +2,16 @@ import { Observable } from 'rxjs/Observable';
 
 import { Inject } from './di';
 import { DocInstance } from './doc';
+import { DocEvent } from './doc_ref';
 import { Collection as dbCollection } from './db';
 
 export const COLLECTION = Symbol('COLLECTION');
 export const Collection: ParameterDecorator = Inject(COLLECTION);
 export interface Collection<S = { id: string, [key: string]: any }> extends dbCollection<S> { }
+
+export interface WatchFilter {
+  (e: DocEvent): boolean|Promise<boolean>
+}
 
 export abstract class DocMutation<D = DocInstance> {
   create: { (candidate: { [key: string]: any }): Promise<D> }
@@ -21,6 +26,6 @@ export abstract class DocQuery<D = DocInstance> {
 }
 
 export abstract class DocSubscription<D = DocInstance> {
-  watch: { (query: { [key: string]: any }): Observable<D[]> }
-  watchOne: { (query: { [key: string]: any }): Observable<D> }
+  watch: { (query: { [key: string]: any }, filter?: WatchFilter): Observable<D[]> }
+  watchOne: { (query: { [key: string]: any }, filter?: WatchFilter): Observable<D> }
 }

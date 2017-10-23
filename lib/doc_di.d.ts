@@ -1,5 +1,6 @@
 import { Observable } from 'rxjs/Observable';
 import { DocInstance } from './doc';
+import { DocEvent } from './doc_ref';
 import { Collection as dbCollection } from './db';
 export declare const COLLECTION: symbol;
 export declare const Collection: ParameterDecorator;
@@ -7,6 +8,9 @@ export interface Collection<S = {
     id: string;
     [key: string]: any;
 }> extends dbCollection<S> {
+}
+export interface WatchFilter {
+    (e: DocEvent): boolean | Promise<boolean>;
 }
 export declare abstract class DocMutation<D = DocInstance> {
     create: {
@@ -46,11 +50,11 @@ export declare abstract class DocSubscription<D = DocInstance> {
     watch: {
         (query: {
             [key: string]: any;
-        }): Observable<D[]>;
+        }, filter?: WatchFilter): Observable<D[]>;
     };
     watchOne: {
         (query: {
             [key: string]: any;
-        }): Observable<D>;
+        }, filter?: WatchFilter): Observable<D>;
     };
 }
