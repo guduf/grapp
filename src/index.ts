@@ -1,7 +1,7 @@
 export { bootstrapGrapp } from './root';
 export { Data, DataArray } from './data_fields';
 export { Db } from './db'
-export { Inject, Payload, Typer } from './di'
+export { Inject, Payload, Provider, Typer } from './di'
 export { Collection, DocMutation, DocQuery, DocSubscription } from './doc_di';
 export {
   decorateDoc as Doc,
