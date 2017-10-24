@@ -19,14 +19,16 @@
   "license": "ISC",
   "homepage": "https://github.com/guduf/grapp#readme",
   "dependencies": {
+    "apollo-link": "^0.8.0",
     "graphql-subscriptions": "^0.5.4",
+    "graphql-tools": "^2.4.0",
+    "mongodb": "^2.2.33",
     "pluralize": "^5.0.0",
     "reflect-metadata": "^0.1.0",
-    "rxjs": "^5.4.0",
+    "rxjs": "^5.5.0",
     "shortid": "^2.2.0",
     "stack-trace": "^0.0.10",
-    "subscriptions-transport-ws": "0.8.3",
-    "ws": "3.0.0",
+    "subscriptions-transport-ws": "^0.9.1",
     "zone.js": "^0.8.4"
   },
   "devDependencies": {
@@ -42,7 +44,7 @@
     "@types/reflect-metadata": "^0.0.5",
     "@types/shortid": "^0.0.29",
     "@types/stack-trace": "^0.0.28",
-    "@types/ws": "3.0.0",
+    "@types/ws": "3.2.0",
     "@types/zen-observable": "^0.5.3",
     "chai": "^3.5.0",
     "chai-as-promised": "^6.0.0",
@@ -51,8 +53,10 @@
   },
   "peerDependencies": {
     "@angular/core": "^4.4.0",
-    "graphql": "^0.11.7",
-    "graphql-tools": "^2.4.0",
-    "mongodb": "^2.2.0"
+    "graphql": "^0.11.7"
+  },
+  "typings": "lib/index.d.ts",
+  "typescript": {
+    "definition": "lib/index.d.ts"
   }
 }
