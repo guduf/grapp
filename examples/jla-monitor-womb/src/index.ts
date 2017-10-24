@@ -1,14 +1,15 @@
-import { PubSub } from 'graphql-subscriptions';
+import * as WebSocket from 'ws';
 
 import { json } from 'body-parser';
 import * as express from 'express';
 import { execute, subscribe } from 'graphql';
+import { PubSub } from 'graphql-subscriptions';
 import { graphqlExpress, graphiqlExpress } from 'graphql-server-express';
 import { createServer } from 'http';
 import { connect as mongodb } from 'mongodb';
 import { SubscriptionServer } from 'subscriptions-transport-ws';
 
-import { bootstrapGrapp } from '../../../lib';
+import { bootstrapGrapp, onConnect, onDisconnect, onOperation, onOperationComplete } from '../../../lib';
 import { AppGrapp } from './App.grapp';
 
 const MONGODB_URI = 'mongodb://127.0.0.1:27017/jla-monitor-womb';
@@ -36,7 +37,15 @@ const WS_PORT = 5000;
   ));
 
   const subscriptionServer = SubscriptionServer.create(
-    {schema, execute, subscribe},
+    {
+      schema,
+      execute,
+      subscribe,
+      onConnect,
+      onDisconnect,
+      onOperation,
+      onOperationComplete
+    },
     {server: websocketServer, path: '/graphql'}
   );
 

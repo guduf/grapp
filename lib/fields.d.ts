@@ -1,4 +1,6 @@
+/// <reference types="ws" />
 import { GraphQLResolveInfo, GraphQLFieldResolver } from 'graphql';
+import * as WebSocket from 'ws';
 import { TypeInstance, TypeTarget } from './type';
 import { TypeRef } from './type_ref';
 export declare const FIELDS_META: symbol;
@@ -40,7 +42,8 @@ export declare class FieldRef<T extends TypeRef = TypeRef, M extends FieldMeta =
     resolveSubscription(instance: TypeInstance, args: {
         [key: string]: any;
     }, context: {
-        [key: string]: any;
+        ws: WebSocket;
+        onSubscriptionComplete: Promise<void>;
     }, info: GraphQLResolveInfo): AsyncIterator<R>;
 }
 export declare function decorateField(meta: {

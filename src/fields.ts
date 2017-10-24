@@ -1,5 +1,6 @@
 import { GraphQLResolveInfo, GraphQLFieldResolver } from 'graphql';
 import { Observable } from 'rxjs/Observable';
+import * as WebSocket from 'ws';
 
 import { OperationRef } from './operation_ref';
 import { TypeInstance, TypeTarget } from './type';
@@ -70,13 +71,20 @@ export class FieldRef<
   resolveSubscription(
     instance: TypeInstance,
     args: { [key: string]: any },
-    context: { [key: string]: any },
+    context: { ws: WebSocket, onSubscriptionComplete: Promise<void> },
     info: GraphQLResolveInfo
   ): AsyncIterator<R> {
+    if (!context.ws) throw new Error('resolveSubscription needs a context with ws');
+    if (!(context.onSubscriptionComplete instanceof Promise))
+    throw new Error('resolveSubscription needs a context with onSubscriptionComplete');
     const {pubsub} = this.typeRef.grappRef.root;
     let fieldValue = this.resolve(instance, args, context, info);
     if (!(fieldValue instanceof Observable)) throw new Error('fieldValue is not a observable');
     const sub = fieldValue.subscribe(value => pubsub.publish(`Subscription:${this.key}`, {[this.key]: value}));
+    context.onSubscriptionComplete.then(() => {
+      console.log('sub unsubscribe');
+      sub.unsubscribe();
+    })
     return this.typeRef.grappRef.root.pubsub.asyncIterator<R>(`Subscription:${this.key}`);
   }
 }

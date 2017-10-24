@@ -47,10 +47,9 @@ export class TypeRef<I extends TypeInstance = TypeInstance, M extends TypeMeta =
     const instance: I = injector.resolveAndInstantiate(this.target);
     for (const [key, fieldRef] of this.fields) if (fieldRef.defineValue)
       Object.defineProperty(instance, key, {
-        value: fieldRef.defineValue(instance),
+        get: fieldRef.defineValue(instance),
         enumerable: true,
-        configurable: false,
-        writable: false
+        configurable: false
        });
     return instance;
   }

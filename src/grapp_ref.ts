@@ -95,7 +95,8 @@ export class GrappRef<M extends GrappMeta = GrappMeta> {
           if (selector === 'Subscription') resolverMap[selector][fieldDef.name.value] = {
             subscribe: <FieldSubscriptionResolver>(source, args, context, info) => {
               return fieldRef.resolveSubscription(operationInstance, args, context, info);
-            }
+            },
+            unsubscribe: (e) => { console.log('unsubscribe', e); }
           }
           else resolverMap[selector][fieldDef.name.value] = (
             <GraphQLFieldResolver>(source, args, context, info) => {

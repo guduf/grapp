@@ -13,5 +13,7 @@ export {
   decorateQuery as Query,
   decorateSubscription as Subscription
 } from './operation';
+export { PubSub } from './pubsub';
 export { decorateType as Type } from './type';
 export { Relation } from './relation_fields';
+export { onConnect, onDisconnect, onOperation, onOperationComplete } from './options';
