@@ -13,15 +13,18 @@ export declare class RelationFieldMeta extends FieldMeta implements RelationFiel
     foreignSelector: string;
     query: Object;
 }
+export interface RelationFieldDecorator {
+    (foreignSelector: string, query?: Object): PropertyDecorator;
+}
 export declare class RelationFieldRef extends FieldRef<DocTypeRef, RelationFieldMeta> {
     constructor(typeRef: DocTypeRef, key: string, meta: RelationFieldMeta);
     defineValue: (instance: any) => () => Promise<TypeInstance | TypeInstance[]>;
     private _fetchData(instance);
 }
-export declare function buildRelationFieldDecorator(kind: RelationFieldKind): PropertyDecorator;
+export declare function buildRelationFieldDecorator(kind: RelationFieldKind): RelationFieldDecorator;
 export declare const Relation: {
-    belongsToMany: PropertyDecorator;
-    belongsToOne: PropertyDecorator;
-    hasMany: PropertyDecorator;
-    hasOne: PropertyDecorator;
+    belongsToMany: RelationFieldDecorator;
+    belongsToOne: RelationFieldDecorator;
+    hasMany: RelationFieldDecorator;
+    hasOne: RelationFieldDecorator;
 };

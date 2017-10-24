@@ -28,6 +28,10 @@ export class RelationFieldMeta extends FieldMeta implements RelationFieldParams 
   query: Object
 }
 
+export interface RelationFieldDecorator {
+  (foreignSelector: string, query?: Object): PropertyDecorator
+}
+
 export class RelationFieldRef extends FieldRef<DocTypeRef, RelationFieldMeta> {
   constructor(typeRef: DocTypeRef, key: string, meta: RelationFieldMeta) {
     super(typeRef, key, meta);
@@ -85,9 +89,9 @@ export class RelationFieldRef extends FieldRef<DocTypeRef, RelationFieldMeta> {
   }
 }
 
-export function buildRelationFieldDecorator(kind: RelationFieldKind): PropertyDecorator {
+export function buildRelationFieldDecorator(kind: RelationFieldKind): RelationFieldDecorator {
   return (foreignSelector: string, query: Object = {}) => {
-    return function decorateRelationField(target, key) {
+    return function decorateRelationField(target, key: string) {
       const meta = new RelationFieldMeta(target, key, {kind, foreignSelector, query});
       setFieldMeta(target, key, meta);
     }
