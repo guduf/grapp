@@ -44,7 +44,8 @@ export class RelationFieldRef extends FieldRef<DocTypeRef, RelationFieldMeta> {
   private async _fetchData(instance: TypeInstance): Promise<TypeInstance|TypeInstance[]> {
     const {foreignSelector, kind, query} = this.meta;
     const foreignDocTypeRef = <DocTypeRef>this.typeRef.grappRef.root.getTypeRef(foreignSelector);
-    if (!(foreignDocTypeRef instanceof DocRef)) throw new Error('foreignDocTypeRef is not instance of DocRef');
+    const foreignCollection = foreignDocTypeRef.grappRef.collection;
+    if (!(foreignDocTypeRef instanceof DocTypeRef)) throw new Error('foreignDocTypeRef is not instance of DocRef');
     if (kind[0] === 'b') {
       let docIdKey = this.typeRef.selector[0].toLocaleLowerCase() + this.typeRef.selector.slice(1) + 'Id';
       if (!foreignDocTypeRef.fields.has(docIdKey)) {
@@ -54,12 +55,12 @@ export class RelationFieldRef extends FieldRef<DocTypeRef, RelationFieldMeta> {
       switch (kind) {
         case 'btm': {
           const btmQuery = {...query, [docIdKey]: (await instance.id)};
-          const data: { id: string }[] = await foreignDocTypeRef.collection.find(btmQuery, {id: true}).toArray();
+          const data: { id: string }[] = await foreignCollection.find(btmQuery, {id: true}).toArray();
           return data.map(({id}) => foreignDocTypeRef.instanciate({id}));
         }
         case 'bto': {
           const btoQuery = {...query, [docIdKey]: (await instance.id)};
-          const data: { id: string } = await foreignDocTypeRef.collection.findOne(btoQuery);
+          const data: { id: string } = await foreignCollection.findOne(btoQuery);
           return foreignDocTypeRef.instanciate(data);
         }
       }
@@ -72,7 +73,7 @@ export class RelationFieldRef extends FieldRef<DocTypeRef, RelationFieldMeta> {
             throw new Error('Cannot find foreignDocId in DocRef: ' + pluralize(foreignDocIdKey));
           const ids: string[] = await instance[pluralize(foreignDocIdKey)];
           const hmQuery = {...query, id: {$in: ids}};
-          const data: { id: string }[] = await foreignDocTypeRef.collection.find(hmQuery, {id: true}).toArray();
+          const data: { id: string }[] = await foreignCollection.find(hmQuery, {id: true}).toArray();
           return data.map(({id}) => foreignDocTypeRef.instanciate({id}));
         }
         case 'ho': {
@@ -80,7 +81,7 @@ export class RelationFieldRef extends FieldRef<DocTypeRef, RelationFieldMeta> {
             throw new Error('Cannot find foreignDocId in DocRef: ' + foreignDocIdKey);
           const docId = await instance[foreignDocIdKey];
           const hoQuery = {...query, id: docId};
-          const {id}: { id: string } = await foreignDocTypeRef.collection.findOne(hoQuery);
+          const {id}: { id: string } = await foreignCollection.findOne(hoQuery);
           return foreignDocTypeRef.instanciate({id});
         }
       }

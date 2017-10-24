@@ -71,10 +71,9 @@ export class FieldRef<
   resolveSubscription(
     instance: TypeInstance,
     args: { [key: string]: any },
-    context: { ws: WebSocket, onSubscriptionComplete: Promise<void> },
+    context: { onSubscriptionComplete: Promise<void> },
     info: GraphQLResolveInfo
   ): AsyncIterator<R> {
-    if (!context.ws) throw new Error('resolveSubscription needs a context with ws');
     if (!(context.onSubscriptionComplete instanceof Promise))
     throw new Error('resolveSubscription needs a context with onSubscriptionComplete');
     const {pubsub} = this.typeRef.grappRef.root;

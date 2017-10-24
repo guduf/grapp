@@ -91,12 +91,11 @@ export class GrappRef<M extends GrappMeta = GrappMeta> {
               fieldRef = operationRef.fields.get(fieldDef.name.value);
               break;
             }
-          if (!fieldRef) throw new Error('Missing fieldRef');
+          if (!fieldRef) throw new Error('Missing fieldRef: ' + fieldDef.name.value);
           if (selector === 'Subscription') resolverMap[selector][fieldDef.name.value] = {
             subscribe: <FieldSubscriptionResolver>(source, args, context, info) => {
               return fieldRef.resolveSubscription(operationInstance, args, context, info);
-            },
-            unsubscribe: (e) => { console.log('unsubscribe', e); }
+            }
           }
           else resolverMap[selector][fieldDef.name.value] = (
             <GraphQLFieldResolver>(source, args, context, info) => {

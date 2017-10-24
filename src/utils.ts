@@ -11,3 +11,7 @@ export function pluralize(str: string): string {
 export function singularize(str: string): string {
   return singular(str);
 }
+
+export function uncapitalize(str: string): string {
+  return str[0].toLowerCase() + str.slice(1);
+}

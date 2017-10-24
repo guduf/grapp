@@ -32,7 +32,7 @@ export class GrappMeta implements GrappParams {
     this.providers = Array.isArray(params.providers) ? params.providers : [];
     this.types = Array.isArray(params.types) ? params.types : [];
     this.operations = Array.isArray(params.operations) ? params.operations : [];
-    this.resolvers = Array.isArray(params.resolvers) ? params.resolvers : [];
+    this.resolvers = params.resolvers ? params.resolvers : {};
     this.schema = params.schema;
   }
 }

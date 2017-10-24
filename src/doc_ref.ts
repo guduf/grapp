@@ -199,7 +199,6 @@ export class DocRef<D = DocInstance> extends GrappRef<DocMeta> {
         })
         .filter(filtered => !filtered)
         .mergeMap(() => this._find(query))
-        .do(console.log)
     );
   }
 

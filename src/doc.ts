@@ -4,7 +4,7 @@ import { GrappMeta, GrappParams, setGrappMeta } from './grapp';
 import { GrappRef } from './grapp_ref';
 import { TypeInstance, TypeMeta, TypeParams, TypeTarget } from './type';
 import { TypeRef } from './type_ref';
-import { capitalize, pluralize } from './utils';
+import { uncapitalize, pluralize } from './utils';
 
 export const DOC_DATA = Symbol('DOC_DATA');
 
@@ -28,7 +28,7 @@ export class DocMeta extends GrappMeta implements TypeMeta {
     else throw new Error('Selector is not defined');
 
     if (params.collectionName) this.collectionName = params.collectionName;
-    else if (target.name) this.collectionName = capitalize(pluralize(this.selector));
+    else if (target.name) this.collectionName = uncapitalize(pluralize(this.selector));
     else throw new Error('None collectionName was specified and target as no name property');
   }
 
