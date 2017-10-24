@@ -7,7 +7,7 @@ import {
   DefinitionNode
 } from 'graphql';
 import { addResolveFunctionsToSchema } from 'graphql-tools';
-import { PubSubEngine } from 'graphql-subscriptions';
+import { PubSub, PubSubEngine } from 'graphql-subscriptions';
 
 import { Db } from './db';
 import { Injector, Provider, TYPER } from './di';
@@ -18,7 +18,7 @@ import { TypeRef } from './type_ref';
 
 export interface RootParams {
   db: Db
-  pubsub: PubSubEngine
+  pubsub?: PubSubEngine
   providers?: Provider[]
 }
 
@@ -28,7 +28,7 @@ export class Root {
     params: RootParams
   ) {
     this.db = params.db;
-    this.pubsub = params.pubsub;
+    this.pubsub = params.pubsub || new PubSub();
 
     this.injector = Injector.resolveAndCreate([
       ...(params.providers || []),

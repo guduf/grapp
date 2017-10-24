@@ -8,7 +8,7 @@ import { TypeInstance } from './type';
 import { TypeRef } from './type_ref';
 export interface RootParams {
     db: Db;
-    pubsub: PubSubEngine;
+    pubsub?: PubSubEngine;
     providers?: Provider[];
 }
 export declare class Root {
