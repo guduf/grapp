@@ -81,7 +81,6 @@ export class FieldRef<
     if (!(fieldValue instanceof Observable)) throw new Error('fieldValue is not a observable');
     const sub = fieldValue.subscribe(value => pubsub.publish(`Subscription:${this.key}`, {[this.key]: value}));
     context.onSubscriptionComplete.then(() => {
-      console.log('sub unsubscribe');
       sub.unsubscribe();
     })
     return this.typeRef.grappRef.root.pubsub.asyncIterator<R>(`Subscription:${this.key}`);
