@@ -1,5 +1,5 @@
 import { GrappRef } from './grapp_ref';
-import { OperationMeta } from './operation';
+import { OperationMeta, OperationKind } from './operation';
 import { TypeInstance, TypeTarget } from './type';
 import { TypeRef } from './type_ref';
 
@@ -8,7 +8,7 @@ export class OperationRef<I = TypeInstance> extends TypeRef<I> {
     super(grappRef, target, meta);
   }
 
-  get kind() { return this.meta.kind; }
+  get kind(): OperationKind { return this.meta.kind; }
   get instance(): I {
     return this._instance ? this._instance : (this._instance = this.instanciate({}));
   }

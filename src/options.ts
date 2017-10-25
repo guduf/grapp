@@ -33,6 +33,10 @@ export function onOperationComplete(ws: WebSocket, id: string) {
 
 export function onDisconnect(ws: WebSocket) {
   const operations: GrappOperations = ws[GRAPP_OPERATIONS];
+  if (typeof operations === 'undefined') {
+    console.warn('WebSocket disconnected without operation references.');
+    return;
+  }
   for (const [, completeOperation] of operations)
     if (typeof completeOperation === 'function') completeOperation();
 }

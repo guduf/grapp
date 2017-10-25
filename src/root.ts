@@ -13,6 +13,7 @@ import { Db } from './db';
 import { Injector, Provider, TYPER } from './di';
 import { GrappMeta, GrappTarget, getGrappMeta } from './grapp';
 import { GrappRef } from './grapp_ref';
+import { OperationKind, OPERATION_KINDS } from './operation';
 import { TypeInstance } from './type';
 import { TypeRef } from './type_ref';
 
@@ -70,9 +71,10 @@ export class Root {
       Query: {}
     };
     const rootDocNode: DocumentNode = {kind: 'Document', definitions: []};
-    const rootQueryNode: ObjectTypeDefinitionNode = {
+    const opNodes: { [key: string]: ObjectTypeDefinitionNode } = {};
+    for (const opKind of OPERATION_KINDS) opNodes[opKind] = {
       kind: 'ObjectTypeDefinition',
-      name: {kind: 'Name', value: 'Query'},
+      name: {kind: 'Name', value: opKind},
       fields: []
     };
     const rootMutationNode: ObjectTypeDefinitionNode = {
@@ -91,14 +93,12 @@ export class Root {
       if (parsed) {
         for (const def of parsed.docNode.definitions) {
           if (def.kind !== 'ObjectTypeDefinition') rootDocNode.definitions.push(def);
-          else if (['Mutation', 'Query'].indexOf(def.name.value) < 0) {
-            rootDocNode.definitions.push(def);
-          }
-          else if (def.name.value === 'Mutation') rootMutationNode.fields.push(...def.fields);
-          else if (def.name.value === 'Query') rootQueryNode.fields.push(...def.fields);
+          else if (OPERATION_KINDS.indexOf(<OperationKind>def.name.value) >= 0)
+            opNodes[def.name.value].fields.push(...def.fields);
+          else rootDocNode.definitions.push(def);
         }
         for (const selector in parsed.resolverMap) {
-          if (['Mutation', 'Query'].indexOf(selector) >= 0) rootResolverMap[selector] = {
+          if (OPERATION_KINDS.indexOf(<OperationKind>selector) >= 0) rootResolverMap[selector] = {
             ...rootResolverMap[selector],
             ...parsed.resolverMap[selector]
           };
@@ -106,7 +106,8 @@ export class Root {
         }
       }
     }
-    rootDocNode.definitions.push(rootMutationNode, rootQueryNode);
+    rootDocNode.definitions.push(...OPERATION_KINDS.map(kind => opNodes[kind]));
+    console.log(`rootResolverMap`, rootResolverMap);
     const schema = buildASTSchema(rootDocNode);
     addResolveFunctionsToSchema(schema, rootResolverMap);
     return schema;
