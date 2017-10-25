@@ -59,7 +59,7 @@ export class MemberSubscription {
   constructor(private _docSubscription: DocSubscription<Member>) { }
 
   listMember(): Observable<Member[]> {
-    return this._docSubscription.watch({}).do(members => console.log(members.map(m => m.id)));
+    return this._docSubscription.watch({})
   }
 }
 

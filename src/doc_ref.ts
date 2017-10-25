@@ -19,6 +19,7 @@ import {
   DocSubscription,
   WatchFilter
 } from './doc_di';
+import { DocEvent } from './doc_event';
 import { GrappTarget } from './grapp';
 import { GrappRef } from './grapp_ref';
 import { OperationKind } from './operation';
@@ -29,30 +30,11 @@ import { TypeRef } from './type_ref';
 import { capitalize } from './utils';
 import { validate, Validators as Vlds } from './validators';
 
-const DOC_EVENT = 'DOC_EVENT';
-
-export type DocEventType = 'insert'|'update'|'remove';
-
-export class DocEvent {
-  constructor(
-    public doc: string,
-    public kind: DocEventType,
-    public ids: string[] = null
-  ) {
-    if (!doc) throw new Error('Doc missing');
-    if (['insert', 'update', 'remove'].indexOf(this.kind) < 0) throw new Error('Invalid kind');
-  }
-}
-
 export class DocRef<D = DocInstance> extends GrappRef<DocMeta> {
   constructor(root: Root, target: GrappTarget, meta: DocMeta) {
     super(root, target, meta);
 
     this.collection = this.root.db.collection(this.meta.collectionName);
-
-    this.docEvents = Observable.create((observer: Observer<DocEvent>) => {
-      this.root.pubsub.subscribe(DOC_EVENT, e => observer.next(e), {});
-    });
 
     const docMutation: DocMutation<D> = {
       create: (candidate) => this._create(candidate),
@@ -87,15 +69,11 @@ export class DocRef<D = DocInstance> extends GrappRef<DocMeta> {
   }
 
   collection: Collection;
-  docEvents: Observable<DocEvent>;
   dataFields: Map<string, DataFieldMeta>;
   docOperationRefs: Map<OperationKind, OperationRef>;
   docTypeRef: DocTypeRef<D>;
 
-
-  publishDocEvent(doc: string, kind: DocEventType, ids: string[]) {
-    this.root.pubsub.publish(DOC_EVENT, new DocEvent(doc, kind, ids));
-  }
+  get selector(): string { return this.docTypeRef.selector; }
 
   private async _create(candidate: { [key: string]: any }): Promise<D> {
     const id = candidate['id'] = (candidate['id'] || shortid());
@@ -120,7 +98,7 @@ export class DocRef<D = DocInstance> extends GrappRef<DocMeta> {
       }
     }
     await this.collection.insertOne({...body, id});
-    this.publishDocEvent(this.docTypeRef.selector, 'insert', [id]);
+    this.root.docEvents.nextInsert(this.selector, id);
     return this._instanciate(id);
   }
 
@@ -136,7 +114,7 @@ export class DocRef<D = DocInstance> extends GrappRef<DocMeta> {
 
   private async _remove(id: string): Promise<boolean> {
     const data: { result: { n: number } } = await this.collection.remove({id});
-    this.publishDocEvent(this.docTypeRef.selector, 'remove', [id]);
+    this.root.docEvents.nextRemove(this.selector, id);
     return Boolean(data.result.n);
   }
 
@@ -159,7 +137,7 @@ export class DocRef<D = DocInstance> extends GrappRef<DocMeta> {
       }
     }
     await this.collection.updateOne({id}, {$set: body});
-    this.publishDocEvent(this.docTypeRef.selector, 'update', [id]);
+    this.root.docEvents.nextUpdate(this.selector, id);
     return this._instanciate(id);
   }
 
@@ -187,7 +165,7 @@ export class DocRef<D = DocInstance> extends GrappRef<DocMeta> {
   private _watch(query: { [key: string]: any }, filter?: WatchFilter): Observable<D[]> {
     return Observable.merge(
       Observable.fromPromise(this._find(query)),
-      this.docEvents
+      this.root.docEvents
         .mergeMap(e => {
           if (typeof filter !== 'function') return Promise.resolve(false);
           let filterResult = <Promise<boolean>>filter(e);
@@ -205,7 +183,7 @@ export class DocRef<D = DocInstance> extends GrappRef<DocMeta> {
   private _watchOne(query: { [key: string]: any }, filter?: WatchFilter): Observable<D> {
     return Observable.merge(
       Observable.fromPromise(this._findOne(query)),
-      this.docEvents
+      this.root.docEvents
         .mergeMap(e => {
           if (typeof filter !== 'function') return Promise.resolve(false);
           let filterResult = <Promise<boolean>>filter(e);

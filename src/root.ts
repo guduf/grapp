@@ -7,10 +7,10 @@ import {
   DefinitionNode
 } from 'graphql';
 import { addResolveFunctionsToSchema } from 'graphql-tools';
-import { PubSub, PubSubEngine } from 'graphql-subscriptions';
 
 import { Db } from './db';
 import { Injector, Provider, TYPER } from './di';
+import { DocEvent, DocEvents } from './doc_event';
 import { GrappMeta, GrappTarget, getGrappMeta } from './grapp';
 import { GrappRef } from './grapp_ref';
 import { OperationKind, OPERATION_KINDS } from './operation';
@@ -19,7 +19,6 @@ import { TypeRef } from './type_ref';
 
 export interface RootParams {
   db: Db
-  pubsub?: PubSubEngine
   providers?: Provider[]
 }
 
@@ -29,11 +28,12 @@ export class Root {
     params: RootParams
   ) {
     this.db = params.db;
-    this.pubsub = params.pubsub || new PubSub();
+    this.docEvents = new DocEvents();
 
     this.injector = Injector.resolveAndCreate([
       ...(params.providers || []),
-      {provide: TYPER, useValue: this.typer.bind(this)}
+      {provide: TYPER, useValue: this.typer.bind(this)},
+      {provide: DocEvents, useValue: this.docEvents}
     ]);
 
     this.registerGrappRef(target);
@@ -42,7 +42,7 @@ export class Root {
   db: Db
   injector: Injector;
   grappRefs = new Map<GrappTarget, GrappRef>();
-  pubsub: PubSubEngine
+  docEvents: DocEvents
   schema: GraphQLSchema;
 
   registerGrappRef(target: GrappTarget): GrappRef {
@@ -107,7 +107,6 @@ export class Root {
       }
     }
     rootDocNode.definitions.push(...OPERATION_KINDS.map(kind => opNodes[kind]));
-    console.log(`rootResolverMap`, rootResolverMap);
     const schema = buildASTSchema(rootDocNode);
     addResolveFunctionsToSchema(schema, rootResolverMap);
     return schema;

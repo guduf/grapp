@@ -1,6 +1,6 @@
 import { Observable } from 'rxjs/Observable';
 import { DocInstance } from './doc';
-import { DocEvent } from './doc_ref';
+import { DocEvent } from './doc_event';
 import { Collection as dbCollection } from './db';
 export declare const COLLECTION: symbol;
 export declare const Collection: ParameterDecorator;

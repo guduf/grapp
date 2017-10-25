@@ -1,14 +1,13 @@
 import { GraphQLSchema } from 'graphql';
-import { PubSubEngine } from 'graphql-subscriptions';
 import { Db } from './db';
 import { Injector, Provider } from './di';
+import { DocEvents } from './doc_event';
 import { GrappMeta, GrappTarget } from './grapp';
 import { GrappRef } from './grapp_ref';
 import { TypeInstance } from './type';
 import { TypeRef } from './type_ref';
 export interface RootParams {
     db: Db;
-    pubsub?: PubSubEngine;
     providers?: Provider[];
 }
 export declare class Root {
@@ -16,7 +15,7 @@ export declare class Root {
     db: Db;
     injector: Injector;
     grappRefs: Map<any, GrappRef<GrappMeta>>;
-    pubsub: PubSubEngine;
+    docEvents: DocEvents;
     schema: GraphQLSchema;
     registerGrappRef(target: GrappTarget): GrappRef;
     getTypeRef(selector: string): TypeRef;

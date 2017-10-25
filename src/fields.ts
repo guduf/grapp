@@ -1,7 +1,11 @@
+import 'rxjs/add/operator/takeUntil';
+
+import { Subscription } from 'rxjs/Subscription';
 import { GraphQLResolveInfo, GraphQLFieldResolver } from 'graphql';
 import { Observable } from 'rxjs/Observable';
 import * as WebSocket from 'ws';
 
+import { obsToAsyncIterator } from './obs-to-async-iterable';
 import { OperationRef } from './operation_ref';
 import { TypeInstance, TypeTarget } from './type';
 import { TypeRef } from './type_ref';
@@ -54,7 +58,7 @@ export class FieldRef<
     args: { [key: string]: any },
     context: { [key: string]: any },
     info: GraphQLResolveInfo
-  ): R|Promise<R> {
+  ): R|Promise<R>|Observable<R> {
     let fieldValue = instance[this.key];
     if (typeof fieldValue === 'undefined') {
       const proto = Object.getPrototypeOf(instance);
@@ -71,19 +75,12 @@ export class FieldRef<
   resolveSubscription(
     instance: TypeInstance,
     args: { [key: string]: any },
-    context: { onSubscriptionComplete: Promise<void> },
+    context: { [key: string]: any },
     info: GraphQLResolveInfo
-  ): AsyncIterator<R> {
-    if (!(context.onSubscriptionComplete instanceof Promise))
-    throw new Error('resolveSubscription needs a context with onSubscriptionComplete');
-    const {pubsub} = this.typeRef.grappRef.root;
-    let fieldValue = this.resolve(instance, args, context, info);
+  ): AsyncIterator<{ [key: string]: R }> {
+    let fieldValue = <Observable<R>>this.resolve(instance, args, context, info)
     if (!(fieldValue instanceof Observable)) throw new Error('fieldValue is not a observable');
-    const sub = fieldValue.subscribe(value => pubsub.publish(`Subscription:${this.key}`, {[this.key]: value}));
-    context.onSubscriptionComplete.then(() => {
-      sub.unsubscribe();
-    })
-    return this.typeRef.grappRef.root.pubsub.asyncIterator<R>(`Subscription:${this.key}`);
+    return obsToAsyncIterator(fieldValue.map(value => ({[this.key]: value})));
   }
 }
 

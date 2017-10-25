@@ -2,13 +2,15 @@ import { Injector } from './di';
 import { FieldRef, mapFieldMeta , FieldResolver} from './fields';
 import { GrappRef } from './grapp_ref';
 import { getTypeMeta, TypeMeta, TypeTarget, TypeInstance } from './type';
+import { Root } from './root';
 
 export const DOC_DATA = Symbol('DOC_DATA');
 
 export class TypeRef<I extends TypeInstance = TypeInstance, M extends TypeMeta = TypeMeta> {
   fields: Map<string, FieldRef>;
 
-  get selector() { return this.meta.selector; }
+  get root(): Root { return this.grappRef.root; }
+  get selector(): string { return this.meta.selector; }
 
   constructor(public grappRef: GrappRef, public target: TypeTarget, public meta: M) {
     const providers = [...this.meta.providers];

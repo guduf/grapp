@@ -3,7 +3,11 @@
   "compilerOptions": {
     "outDir": "../lib",
     "emitDecoratorMetadata": true,
-    "experimentalDecorators": true
+    "experimentalDecorators": true,
+    "lib": [
+      "dom",
+      "esnext"
+    ]
   },
   "exclude": [
     "test/",

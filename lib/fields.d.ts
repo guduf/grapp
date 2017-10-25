@@ -1,4 +1,6 @@
+import 'rxjs/add/operator/takeUntil';
 import { GraphQLResolveInfo, GraphQLFieldResolver } from 'graphql';
+import { Observable } from 'rxjs/Observable';
 import { TypeInstance, TypeTarget } from './type';
 import { TypeRef } from './type_ref';
 export declare const FIELDS_META: symbol;
@@ -36,12 +38,14 @@ export declare class FieldRef<T extends TypeRef = TypeRef, M extends FieldMeta =
         [key: string]: any;
     }, context: {
         [key: string]: any;
-    }, info: GraphQLResolveInfo): R | Promise<R>;
+    }, info: GraphQLResolveInfo): R | Promise<R> | Observable<R>;
     resolveSubscription(instance: TypeInstance, args: {
         [key: string]: any;
     }, context: {
-        onSubscriptionComplete: Promise<void>;
-    }, info: GraphQLResolveInfo): AsyncIterator<R>;
+        [key: string]: any;
+    }, info: GraphQLResolveInfo): AsyncIterator<{
+        [key: string]: R;
+    }>;
 }
 export declare function decorateField(meta: {
     [key: string]: any;

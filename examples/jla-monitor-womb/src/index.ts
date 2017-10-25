@@ -9,7 +9,7 @@ import { createServer } from 'http';
 import { connect as mongodb } from 'mongodb';
 import { SubscriptionServer } from 'subscriptions-transport-ws';
 
-import { bootstrapGrapp, onConnect, onDisconnect, onOperation, onOperationComplete } from '../../../lib';
+import { bootstrapGrapp } from '../../../lib';
 import { AppGrapp } from './App.grapp';
 
 const MONGODB_URI = 'mongodb://127.0.0.1:27017/jla-monitor-womb';
@@ -18,15 +18,7 @@ const WS_PORT = 5000;
 
 (async function bootstrap() {
   const db = await mongodb(MONGODB_URI);
-  const pubsub = new PubSub();
-  const schema = bootstrapGrapp(AppGrapp, {db, pubsub});
-  // setInterval(
-  //   () => {
-  //     pubsub.publish('FOO_BAR', 'test 1234567890');
-  //     console.log('publish');
-  //   },
-  //   1000
-  // );
+  const schema = bootstrapGrapp(AppGrapp, {db});
   const websocketServer = createServer((request, response) => {
     response.writeHead(404);
     response.end();
@@ -40,11 +32,7 @@ const WS_PORT = 5000;
     {
       schema,
       execute,
-      subscribe,
-      onConnect,
-      onDisconnect,
-      onOperation,
-      onOperationComplete
+      subscribe
     },
     {server: websocketServer, path: '/graphql'}
   );

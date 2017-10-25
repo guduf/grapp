@@ -4,7 +4,6 @@ import 'rxjs/add/operator/do';
 import 'rxjs/add/operator/filter';
 import 'rxjs/add/operator/map';
 import 'rxjs/add/operator/mergeMap';
-import { Observable } from 'rxjs/Observable';
 import { DataFieldMeta } from './data_fields';
 import { Collection } from './db';
 import { DocMeta, DocInstance } from './doc';
@@ -15,21 +14,13 @@ import { OperationRef } from './operation_ref';
 import { Root } from './root';
 import { TypeTarget } from './type';
 import { TypeRef } from './type_ref';
-export declare type DocEventType = 'insert' | 'update' | 'remove';
-export declare class DocEvent {
-    doc: string;
-    kind: DocEventType;
-    ids: string[];
-    constructor(doc: string, kind: DocEventType, ids?: string[]);
-}
 export declare class DocRef<D = DocInstance> extends GrappRef<DocMeta> {
     constructor(root: Root, target: GrappTarget, meta: DocMeta);
     collection: Collection;
-    docEvents: Observable<DocEvent>;
     dataFields: Map<string, DataFieldMeta>;
     docOperationRefs: Map<OperationKind, OperationRef>;
     docTypeRef: DocTypeRef<D>;
-    publishDocEvent(doc: string, kind: DocEventType, ids: string[]): void;
+    readonly selector: string;
     private _create(candidate);
     private _find(query);
     private _findOne(query);
