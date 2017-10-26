@@ -1,3 +1,4 @@
+import 'zone.js';
 import 'rxjs/add/operator/takeUntil';
 import { GraphQLResolveInfo, GraphQLFieldResolver } from 'graphql';
 import { Observable } from 'rxjs/Observable';

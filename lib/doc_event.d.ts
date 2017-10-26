@@ -4,7 +4,8 @@ export declare class DocEvent {
     doc: string;
     kind: DocEventType;
     ids: string[];
-    constructor(doc: string, kind: DocEventType, ids?: string[]);
+    userId: string;
+    constructor(doc: string, kind: DocEventType, ids?: string[], userId?: string);
 }
 export declare class DocEvents extends Subject<DocEvent> {
     nextInsert(docSelector: string, ...ids: string[]): void;

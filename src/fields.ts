@@ -1,8 +1,10 @@
+import 'zone.js';
 import 'rxjs/add/operator/takeUntil';
 
 import { Subscription } from 'rxjs/Subscription';
 import { GraphQLResolveInfo, GraphQLFieldResolver } from 'graphql';
 import { Observable } from 'rxjs/Observable';
+import { generate as shortid } from 'shortid';
 import * as WebSocket from 'ws';
 
 import { obsToAsyncIterator } from './obs-to-async-iterable';
@@ -59,17 +61,25 @@ export class FieldRef<
     context: { [key: string]: any },
     info: GraphQLResolveInfo
   ): R|Promise<R>|Observable<R> {
-    let fieldValue = instance[this.key];
-    if (typeof fieldValue === 'undefined') {
-      const proto = Object.getPrototypeOf(instance);
-      if (Object.getOwnPropertyNames(proto).indexOf(this.key) >= 0) {
-        fieldValue = proto[this.key];
+    const fieldResolverZone = Zone.current.fork({
+      name: `${this.typeRef.selector}:${this.key}:${shortid()}`,
+      properties: {context, info}
+    });
+    const {key} = this;
+    function fieldResolverWrapper(): R|Promise<R>|Observable<R> {
+      let fieldValue = instance[key];
+      if (typeof fieldValue === 'undefined') {
+        const proto = Object.getPrototypeOf(instance);
+        if (Object.getOwnPropertyNames(proto).indexOf(key) >= 0) {
+          fieldValue = proto[key];
+        }
       }
+      if (typeof fieldValue === 'function')
+        return fieldValue.call(instance, args, context, info);
+      else if (typeof fieldValue !== 'undefined') return fieldValue;
+      else throw new Error('fieldValue is undefined');
     }
-    if (typeof fieldValue === 'function')
-      return fieldValue.call(instance, args, context, info);
-    else if (typeof fieldValue !== 'undefined') return fieldValue;
-    else throw new Error('fieldValue is undefined');
+    return fieldResolverZone.run<R|Promise<R>|Observable<R>>(fieldResolverWrapper);
   }
 
   resolveSubscription(
