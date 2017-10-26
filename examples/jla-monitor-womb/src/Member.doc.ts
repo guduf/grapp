@@ -1,12 +1,15 @@
 import { Observable } from 'rxjs';
 
 import {
+  COLLECTION,
+  Collection,
   Doc,
   DocId,
   DocMutation,
   DocQuery,
   DocSubscription,
   Data,
+  Inject,
   Mutation,
   Query,
   Subscription
@@ -34,7 +37,10 @@ const schema = `
 
 @Mutation()
 export class MemberMutation {
-  constructor(private _docMutation: DocMutation<Member>) { }
+  constructor(
+    @Inject(COLLECTION) private _collection: Collection,
+    private _docMutation: DocMutation<Member>
+  ) { }
 
   createMember({pseudo}: {pseudo: string}): Promise<Member> {
     return this._docMutation.create({pseudo});

@@ -1,11 +1,11 @@
 export { Data, DataArray } from './data_fields';
-export { Db } from './db'
+export { Db, Collection } from './db'
 export { Inject, Payload, Provider, Typer } from './di'
 export {
   decorateDoc as Doc,
   docDocIdDecorator as DocId
 } from './doc';
-export { Collection, DocMutation, DocQuery, DocSubscription } from './doc_di';
+export { COLLECTION, DocMutation, DocQuery, DocSubscription } from './doc_di';
 export { DocEvent, DocEvents } from './doc_event'
 export { decorateGrapp as Grapp } from './grapp';
 export {
