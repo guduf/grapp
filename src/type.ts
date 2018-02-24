@@ -1,6 +1,7 @@
 import { Injectable, Provider } from './di';
 import { TypeRef } from './type_ref';
 import { defineMeta, getMeta } from './meta';
+import { Source } from 'graphql';
 
 export type TypeTarget = any;
 
@@ -12,23 +13,26 @@ export interface TypeInstance {
 export interface TypeParams {
   selector?: string
   providers?: Provider[]
+  schema?: string
 }
 
 export class TypeMeta implements TypeParams {
   constructor(
-    target: TypeTarget,
+    public target: TypeTarget,
     params: TypeParams,
-    public TypeRefClass: typeof TypeRef  = TypeRef
+    public TypeRefClass: typeof TypeRef = TypeRef
   ) {
     if (typeof params !== 'object') throw new TypeError('Params is not a object');
     this.providers  = params.providers || [];
     if (params.selector) this.selector = params.selector;
     else if (target.name) this.selector = target.name;
     else throw new Error('Selector is not defined');
+    if (params.schema) this.source = new Source(params.schema, `@${this.selector}`)
   }
 
   providers: Provider[];
   selector: string;
+  source?: Source;
 }
 
 const TYPE_META = Symbol('TYPE_META');

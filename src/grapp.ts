@@ -3,6 +3,7 @@ import { defineMeta, getMeta } from './meta';
 import { TypeTarget } from './type';
 import { TypeRef } from './type_ref';
 import { GrappRef } from './grapp_ref';
+import { Source } from 'graphql';
 
 export type GrappTarget = any;
 
@@ -18,9 +19,8 @@ export interface GrappParams {
 export class GrappMeta implements GrappParams {
   imports: GrappTarget[]
   types: TypeTarget[]
-  operations: TypeTarget[]
   providers: Provider[]
-  schema?: string
+  source?: Source
   resolvers: { [key: string]: any }
 
   constructor(
@@ -31,9 +31,8 @@ export class GrappMeta implements GrappParams {
     this.imports = Array.isArray(params.imports) ? params.imports : [];
     this.providers = Array.isArray(params.providers) ? params.providers : [];
     this.types = Array.isArray(params.types) ? params.types : [];
-    this.operations = Array.isArray(params.operations) ? params.operations : [];
     this.resolvers = params.resolvers ? params.resolvers : {};
-    this.schema = params.schema;
+    this.source = new Source(params.schema, `@${this.target.name}`);
   }
 }
 

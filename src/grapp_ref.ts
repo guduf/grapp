@@ -9,114 +9,122 @@ import {
   NamedTypeNode,
   NonNullTypeNode,
   GraphQLFieldResolver,
-  parse as parseSchema
+  Source as SchemaSource,
+  parse as graphqlParse
 } from 'graphql';
 
-import { Root } from './root';
-import { Db, Collection } from './db';
+import { GrappRoot } from './root';
 import { Injector, Provider } from './di';
 import { FieldRef, FieldSubscriptionResolver } from './fields';
-import { getTypeMeta, TypeInstance, TypeTarget } from './type';
+import { getTypeMeta, TypeInstance, TypeTarget, TypeMeta } from './type';
 import { TypeRef } from './type_ref';
 import { getGrappMeta, GrappMeta, GrappTarget } from './grapp';
-import { OperationMeta, OperationKind, OPERATION_KINDS } from './operation';
-import { OperationRef } from './operation_ref';
-
-export interface GrappSchemaDefs {
-  query: FieldDefinitionNode[]
-  mutation: FieldDefinitionNode[]
-  types: ObjectTypeDefinitionNode[]
-  misc: DefinitionNode[]
-}
+import { capitalize } from '../lib/utils';
 
 export class GrappRef<M extends GrappMeta = GrappMeta> {
-  collection: Collection;
-  operationRefs: Set<OperationRef>;
-  typeRefs: Map<string, TypeRef>;
-  imports: GrappRef[];
-  injector: Injector;
+  readonly typeRefs: MapsByTypeKind<TypeRef>
+  readonly imports: GrappRef[];
+  readonly injector: Injector;
 
-  constructor(public root: Root, public target: GrappTarget, public meta: M) {
-    this.imports = this.meta.imports.map(grappTarget => this.root.registerGrappRef(grappTarget));
-    const providers = [...this.meta.providers];
+  constructor(
+    readonly root: GrappRoot,
+    meta: M
+  ) {
+    this.imports = meta.imports.map(grappTarget => this.root.registerGrappRef(grappTarget));
+    const providers = [...meta.providers];
     this.injector = this.root.injector.resolveAndCreateChild(providers);
-    const typeRefs = new Map<string, TypeRef>();
-    for (const grappRef of this.imports)
-      for (const [key, typeRef] of grappRef.typeRefs) typeRefs.set(key, typeRef);
-    for (const target of this.meta.types) {
-      const typeRef = this.referenceType(target);
-      typeRefs.set(typeRef.selector, typeRef);
-    }
-    this.typeRefs = typeRefs;
-    const operationRefs = new Set<OperationRef>();
-    for (const target of this.meta.operations) {
-      const operationRef = this.referenceType<OperationRef>(target);
-      operationRefs.add(operationRef);
-    }
-    this.operationRefs = operationRefs;
+    const {metas, sources} = parseGrappMeta(meta);
+    const {types, nodes} = parseSchemaSource(...sources);
+    this.typeRefs = this._mapDefinitions(types, metas);
   }
 
-  referenceType<R extends TypeRef = TypeRef>(target: TypeTarget): R {
-    const meta = getTypeMeta(target);
-    if (!meta) throw new Error(
-      'Failed to find meta for Type: ' + (target.name ? target.name : typeof target)
+  private _mapDefinitions(
+    definitions: MapsByTypeKind<ObjectTypeDefinitionNode>,
+    metas: Map<string, TypeMeta>
+  ): MapsByTypeKind<TypeRef> {
+    const refs: MapsByTypeKind<TypeRef>= {};
+    for (const typeKind of Object.keys(definitions)) {
+      refs[typeKind] = new Map();
+      for (const [selector, definition] of definitions[typeKind]) {
+        const meta = metas.get(selector);
+        if (!meta) throw new ReferenceError(
+          `Failed to get type meta for type selector: '${selector}'`
+        );
+        let typeRef: TypeRef;
+        try { typeRef = new meta.TypeRefClass(this, meta, definition); }
+        catch (catched) {
+          console.error(catched);
+          throw new Error(`Failed to instanciate type ref '${selector}': ${catched.message}`);
+        }
+        if (!(typeRef instanceof TypeRef)) throw new TypeError(
+          `Type reference with selector '${selector}' is not a instance of TypeRef`
+        );
+        refs[typeKind].set(selector, typeRef);
+      }
+    }
+    return refs;
+  }
+}
+
+export interface MapsByTypeKind<T> {
+  type?: Map<string, T>
+  query?: Map<string, T>
+  mutation?: Map<string, T>
+  subscription?: Map<string, T>
+}
+
+export function parseGrappMeta(meta: GrappMeta): {
+  metas: Map<string, TypeMeta>
+  sources: SchemaSource[]
+} {
+  const metas = new Map<string, TypeMeta>();
+  const sources: SchemaSource[] = [];
+  if (meta.source) sources.push(meta.source);
+  for (const typeTarget of meta.types) {
+    const meta = getTypeMeta(typeTarget);
+    if (!(meta instanceof TypeMeta)) throw new ReferenceError(
+      `Failed to get type meta for type target: ${typeTarget.name || typeTarget}`
+    );
+    if (metas.has(meta.selector)) throw new ReferenceError(
+      `Duplicate meta type selector: '${meta.selector}'`
     )
-    let typeRef: R;
-    try { typeRef = <R>new meta.TypeRefClass(this, target, meta); } catch (err) {
-      console.error(err);
-      throw new Error(
-        'Failed to reference Type: ' + (target.name ? target.name : typeof target)
-      );
-    }
-    return typeRef;
+    metas.set(meta.selector, meta);
+    if (meta.source) sources.push(meta.source);
   }
+  return {metas, sources};
+}
 
-  parse(): { docNode: DocumentNode, resolverMap: { [key: string]: { [key: string]: any } } } {
-    if (!this.meta.schema) return null;
-    const docNode = parseSchema(this.meta.schema, {noLocation: true});
-    const resolverMap: { [key: string]: { [key: string]: any } } = {
-      ...this.meta.resolvers
-    };
-    for (const def of docNode.definitions) if (def.kind === 'ObjectTypeDefinition') {
-      const selector = def.name.value;
-      if (OPERATION_KINDS.indexOf(<OperationKind>selector) >= 0) {
-        resolverMap[selector] = {};
-        for (const fieldDef of def.fields) {
-          let operationInstance: TypeInstance;
-          let fieldRef: FieldRef;
-          let resolver: any;
-          for (const operationRef of this.operationRefs)
-            if (operationRef.fields.has(fieldDef.name.value)) {
-              operationInstance = operationRef.instance;
-              fieldRef = operationRef.fields.get(fieldDef.name.value);
-              break;
-            }
-          if (!fieldRef) throw new Error('Missing fieldRef: ' + fieldDef.name.value);
-          if (selector === 'Subscription') resolverMap[selector][fieldDef.name.value] = {
-            subscribe: <FieldSubscriptionResolver>(source, args, context, info) => {
-              return fieldRef.resolveSubscription(operationInstance, args, context, info);
-            }
-          }
-          else resolverMap[selector][fieldDef.name.value] = (
-            <GraphQLFieldResolver>(source, args, context, info) => {
-              return fieldRef.resolve(operationInstance, args, context, info);
-            }
-          );
-        }
-      }
+export function parseSchemaSource(...sources: SchemaSource[]): {
+  types: MapsByTypeKind<ObjectTypeDefinitionNode>
+  nodes: DefinitionNode[]
+} {
+  const types = {};
+  const nodes: DefinitionNode[] = [];
+  for (const source of sources) {
+    let document: DocumentNode;
+    try { document = graphqlParse(source); }
+    catch (catched) {
+      console.error(catched);
+      throw new Error(`Failed to parse source '${source.name}': ${catched.message}`);
+    }
+    for (const definition of document.definitions) {
+      if (definition.kind !== 'ObjectTypeDefinition') nodes.push(definition);
       else {
-        const typeRef = this.typeRefs.get(selector);
-        if (!typeRef) throw new ReferenceError('Cannot find type with selector ' + selector);
-        resolverMap[selector] = {};
-        for (const fieldDef of def.fields) {
-          const fieldRef = typeRef.fields.get(fieldDef.name.value);
-          if (!fieldRef) throw new Error(
-            'Cannot find field with this name: ' + fieldDef.name.value + ' for ' + typeRef.selector
-          );
-          resolverMap[selector][fieldDef.name.value] = fieldRef.resolve.bind(fieldRef);
+        const name = definition.name.value;
+        const OPERATIONS_TYPES = ['query', 'mutation', 'subscription', 'type'];
+        for (const operationType of OPERATIONS_TYPES) {
+          if (operationType === 'type')
+            if (types['type'].has(name)) throw new ReferenceError(name);
+            else types['type'].set(name, definition);
+          if (name.match(new RegExp(`/\w+${capitalize(operationType)}$/`))) {
+            if (!types[operationType]) (types[operationType] = new Map());
+            if (!types[operationType].has(name)) throw new ReferenceError(name);
+            types[operationType].set(name, definition);
+            break;
+          }
         }
       }
     }
-    return {docNode, resolverMap};
   }
+  return {types, nodes};
 }
