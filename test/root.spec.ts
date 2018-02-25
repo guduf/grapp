@@ -31,18 +31,5 @@ describe('root.ts', () => {
         expect(emptyRoot = new GrappRoot(EmptyGrapp)).toBeInstanceOf(GrappRoot)
       );
     });
-
-    describe('build()', () => {
-      it('should throw a error when query definition has no fields', () =>
-        expect(() => emptyRoot.build()).toThrowError('No fields in Query definition')
-      );
-    });
-
-  });
-
-  describe('bootstrapGrapp()', () => {
-    it('should return a graphql schema', () => {
-      expect(bootstrapGrapp(HelloWorldGrapp)).toBeInstanceOf(GraphQLSchema)
-    });
   });
 });

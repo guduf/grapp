@@ -43,13 +43,15 @@ export class GrappRoot {
       {provide: TYPER, useValue: this.typer.bind(this)}
     ]);
 
-    this.registerGrappRef(target);
+    this.bootstrapedGrapp = this.importGrappRef(target);
   }
 
   /** The root injector. */
   injector: Injector;
   /** The store of registred grapps. */
   grappRefs = new Map<GrappTarget, GrappRef>();
+  /** The grapp which has been bootstraped */
+  bootstrapedGrapp: GrappRef
 
   /**
    * Creates a grapp and registers it in the root store.
@@ -57,9 +59,10 @@ export class GrappRoot {
    * @param target The grapp that will be initialize.
    * @returns The registred grapp reference.
    */
-  registerGrappRef(target: GrappTarget): GrappRef {
+  importGrappRef(target: GrappTarget): GrappRef {
     if (this.grappRefs.has(target)) return this.grappRefs.get(target);
     const grappMeta = getGrappMeta(target);
+    if (!grappMeta) return null;
     const grappRef = new grappMeta.ctor(this, grappMeta);
     this.grappRefs.set(target, grappRef);
     return grappRef;
@@ -87,69 +90,6 @@ export class GrappRoot {
     if (!typeRef) throw new Error('Cant find type with selector: ' + selector);
     return typeRef.instanciate(payload);
   }
-
-  /**
-   * Builds a new a graphQL schema using the registred grapps references.
-   */
-  build(): GraphQLSchema {
-    const rootResolverMap: { [type: string]: { [field: string]: any } } = {
-      Mutation: {},
-      Query: {}
-    };
-    const rootDocNode: DocumentNode = {kind: 'Document', definitions: []};
-    const opNodes: { [key: string]: ObjectTypeDefinitionNode } = {};
-    // for (const opKind of OPERATION_KINDS) opNodes[opKind] = {
-    //   kind: 'ObjectTypeDefinition',
-    //   name: {kind: 'Name', value: opKind},
-    //   fields: []
-    // };
-    const rootMutationNode: ObjectTypeDefinitionNode = {
-      kind: 'ObjectTypeDefinition',
-      name: {kind: 'Name', value: 'Mutation'},
-      fields: []
-    };
-    // for (const [, grappRef] of this.grappRefs) {
-    //   let parsed: { docNode: DocumentNode, resolverMap: { [key: string]: any } }
-    //   try {
-    //     parsed = grappRef.parse();
-    //   } catch (err) {
-    //     console.error(err);
-    //     throw new Error('Failed to parse grappRef: ' + grappRef.target.name);
-    //   }
-    //   if (parsed) {
-    //     for (const def of parsed.docNode.definitions) {
-    //       if (def.kind !== 'ObjectTypeDefinition') rootDocNode.definitions.push(def);
-    //       else if (OPERATION_KINDS.indexOf(<OperationKind>def.name.value) >= 0)
-    //         opNodes[def.name.value].fields.push(...def.fields);
-    //       else rootDocNode.definitions.push(def);
-    //     }
-    //     for (const selector in parsed.resolverMap) {
-    //       if (OPERATION_KINDS.indexOf(<OperationKind>selector) >= 0) rootResolverMap[selector] = {
-    //         ...rootResolverMap[selector],
-    //         ...parsed.resolverMap[selector]
-    //       };
-    //       else rootResolverMap[selector] = parsed.resolverMap[selector];
-    //     }
-    //   }
-    // }
-    // for (const kind of OPERATION_KINDS)
-    //   if (opNodes[kind].fields.length) {
-    //     rootDocNode.definitions.push(opNodes[kind]);
-    //   } else if (kind === 'Query') {
-    //     const err = new Error(`BuildError: No fields in Query definition`);
-    //     console.error(err);
-    //     throw err;
-    //   }
-    let schema: GraphQLSchema;
-    try { schema = buildASTSchema(rootDocNode); } catch (catched) {
-      const err = new Error(`BuildError: ${catched.message || catched}`);
-      console.error(`rootDocNode.definitions\n`, rootDocNode.definitions);
-      console.error(err);
-      throw err;
-    }
-    addResolveFunctionsToSchema(schema, rootResolverMap);
-    return schema;
-  }
 }
 
 /**
@@ -160,5 +100,5 @@ export class GrappRoot {
  */
 export function bootstrapGrapp(target: GrappTarget, params: GrappRootParams = {}): GraphQLSchema {
   const root = new GrappRoot(target, params);
-  return root.build();
+  return root.bootstrapedGrapp.build();
 }

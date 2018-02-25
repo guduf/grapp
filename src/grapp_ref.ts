@@ -3,36 +3,107 @@ import {
   DocumentNode,
   ObjectTypeDefinitionNode,
   Source as SchemaSource,
-  parse as graphqlParse
+  parse as graphqlParse,
+  GraphQLSchema,
+  buildASTSchema
 } from 'graphql';
+import { addResolveFunctionsToSchema } from 'graphql-tools';
 
 import { Injector } from './di';
 import { getGrappMeta, GrappMeta, GrappTarget } from './grapp';
-import { GrappRoot } from './root';
 import { getTypeMeta, TypeInstance, TypeTarget, TypeMeta } from './type';
 import { TypeRef } from './type_ref';
 import { capitalize } from './utils';
+import { GrappRoot } from './root';
 
 /** Represents a unique instance of grapp reference created during bootstrap. */
 export class GrappRef<M extends GrappMeta = GrappMeta> {
+  /** The injector relative to this grapp ref. */
+  readonly injector: Injector
+  /** The store of registred type references. */
   readonly typeRefs: MapsByTypeKind<TypeRef>
-  readonly imports: GrappRef[];
-  readonly injector: Injector;
-
+  /** The store of schema definitions nodes different than object type. */
+  readonly nodes: Set<DefinitionNode>
+  /** The store of schema definitions nodes different than object type. */
+  readonly resolvers: { [key: string]: any };
   /**
    * Initialize a grapp reference.
    * @param root The grapp root.
    * @param meta The meta of the grapp.
    */
   constructor(
-    readonly root: GrappRoot,
+    root: GrappRoot,
     meta: M
   ) {
-    this.imports = meta.imports.map(grappTarget => this.root.registerGrappRef(grappTarget));
-    this.injector = this.root.injector.resolveAndCreateChild([...meta.providers]);
+    const typeRefs: MapsByTypeKind<TypeRef> = {};
+    const nodes = new Set<DefinitionNode>();
+    const resolvers = new Map<string, () => any>();
+    for (const target of meta.imports) {
+      const grappRef = root.importGrappRef(target);
+      if (!grappRef) throw new ReferenceError(
+        `Failed to import grapp reference with the target: ${target.name || target}`
+      );
+      for (const typeKind of ['query', 'mutation', 'subscription', 'type'])
+        if (grappRef.typeRefs[typeKind]) {
+          if (!typeRefs[typeKind]) typeRefs[typeKind] = new Map();
+          for (const [selector, typeRef] of grappRef.typeRefs[typeKind])
+            typeRefs[typeKind].set(selector, typeRef);
+        }
+      if (grappRef.nodes)
+        for (const node of grappRef.nodes) nodes.add(node);
+      if (grappRef.resolvers)
+        for (const key of Object.keys(grappRef.resolvers)) (
+          resolvers[key] = grappRef.resolvers[key]
+        );
+    }
+    this.injector = root.injector.resolveAndCreateChild([...meta.providers]);
+    if (meta.resolvers)
+      for (const key of Object.keys(meta.resolvers)) (
+        resolvers[key] = meta.resolvers[key]
+      );
     const {metaMap, sources} = parseGrappMeta(meta);
-    const {definitions, nodes} = parseSchemaSource(...sources);
-    this.typeRefs = this._mapTypeDefinitions(definitions, metaMap);
+    const {definitions, nodes: ownNodes} = parseSchemaSource(...sources);
+    for (const node of ownNodes) nodes.add(node);
+    const ownTypeRefs = this._mapTypeDefinitions(definitions, metaMap);
+    for (const typeKind of ['query', 'mutation', 'subscription', 'type'])
+      if (ownTypeRefs[typeKind]) {
+        if (!typeRefs[typeKind]) typeRefs[typeKind] = new Map();
+        for (const [selector, typeRef] of ownTypeRefs[typeKind])
+          typeRefs[typeKind].set(selector, typeRef);
+      }
+    this.typeRefs = typeRefs;
+  }
+
+  build(): GraphQLSchema {
+    const resolvers = {...this.resolvers};
+    const definitions: DefinitionNode[] = Array.from(this.nodes);
+    if (this.typeRefs.type)
+      for (const [selector, typeRef] of this.typeRefs.type) {
+        definitions.push(typeRef.definition);
+      }
+    for (const typeKind of ['query', 'mutation', 'subscription']) {
+      if (this.typeRefs[typeKind]) {
+        const typeRefMap: Map<string, TypeRef> = this.typeRefs[typeKind];
+        const definition: ObjectTypeDefinitionNode = {
+          kind: 'ObjectTypeDefinition',
+          name: {kind: 'Name', value: capitalize(typeKind)},
+          fields: []
+        };
+        for (const [selector, typeRef] of this.typeRefs[typeKind])
+          for (const [key, fieldRef] of typeRef.fields) {
+            definition.fields.push(fieldRef.definition)
+          }
+        definitions.push(definition);
+      }
+    }
+    const documentNode: DocumentNode = { kind: 'Document', definitions};
+    let schema: GraphQLSchema;
+    try { schema = buildASTSchema(documentNode); } catch (catched) {
+      console.error(catched);
+      throw new Error(`BuildError: ${catched.message || catched}`);
+    }
+    addResolveFunctionsToSchema(schema, resolvers);
+    return schema;
   }
 
   /**
@@ -104,15 +175,14 @@ export function parseGrappMeta(meta: GrappMeta): {
 
 /**
  * Parses schema sources to maps by type kind of definition
- * and a array of the others nodes.
+ * and a set of the others nodes.
  */
 export function parseSchemaSource(...sources: SchemaSource[]): {
   definitions: MapsByTypeKind<ObjectTypeDefinitionNode>
-  nodes: DefinitionNode[]
+  nodes: Set<DefinitionNode>
 } {
   const definitions = {};
-  const nodes: DefinitionNode[] = [];
-  console.log(sources);
+  const nodes = new Set<DefinitionNode>();
   for (const source of sources) {
     let document: DocumentNode;
     try { document = graphqlParse(source.body); }
@@ -121,7 +191,7 @@ export function parseSchemaSource(...sources: SchemaSource[]): {
       throw new Error(`Failed to parse source '${source.name}': ${catched.message}`);
     }
     for (const definition of document.definitions) {
-      if (definition.kind !== 'ObjectTypeDefinition') nodes.push(definition);
+      if (definition.kind !== 'ObjectTypeDefinition') nodes.add(definition);
       else {
         const name = definition.name.value;
         const OPERATIONS_TYPES = ['query', 'mutation', 'subscription', 'type'];

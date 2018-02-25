@@ -11,22 +11,21 @@ export const DOC_DATA = Symbol('DOC_DATA');
 export class TypeRef<I extends TypeInstance = TypeInstance, M extends TypeMeta = TypeMeta> {
   readonly fields: Map<string, FieldRef>;
   readonly injector: Injector;
-
-  get root(): GrappRoot { return this.grappRef.root; }
-  get selector(): string { return this.meta.selector; }
+  readonly target: TypeTarget;
+  readonly selector: string;
 
   constructor(
-    public grappRef: GrappRef,
-    public meta: M,
-    definition: ObjectTypeDefinitionNode
+    grappRef: GrappRef,
+    meta: M,
+    readonly definition: ObjectTypeDefinitionNode
   ) {
-    this.injector = this.grappRef.injector.resolveAndCreateChild([...meta.providers]);
+    this.injector = this.injector.resolveAndCreateChild([...meta.providers]);
     this.fields = this._mapFieldDefinitions(definition.fields, meta.fields);
+    this.selector = meta.selector;
   }
 
   instanciate(payload: { [key: string]: any }): I {
-    const injector = this.injector.resolveAndCreateChild([...this.meta.providers]);
-    const instance: I = injector.resolveAndInstantiate(this.meta.target);
+    const instance: I = this.injector.resolveAndInstantiate(this.target);
     for (const [key, fieldRef] of this.fields) if (fieldRef.defineValue)
       Object.defineProperty(instance, key, {
         get: fieldRef.defineValue(instance),
@@ -51,7 +50,7 @@ export class TypeRef<I extends TypeInstance = TypeInstance, M extends TypeMeta =
         `Duplicate meta field key: '${key}'`
       )
       let fieldRef: FieldRef;
-      try { fieldRef = new meta.FieldRefClass(this, key, meta); }
+      try { fieldRef = new meta.FieldRefClass(this, key, meta, definition); }
       catch (catched) {
         console.error(catched);
         throw new Error(`Failed to instanciate field reference '${key}': ${catched.message}`);

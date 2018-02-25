@@ -2,7 +2,7 @@ import 'zone.js';
 import 'rxjs/add/operator/map';
 
 import { Subscription } from 'rxjs/Subscription';
-import { GraphQLResolveInfo, GraphQLFieldResolver } from 'graphql';
+import { GraphQLResolveInfo, GraphQLFieldResolver, FieldDefinitionNode } from 'graphql';
 import { Observable } from 'rxjs/Observable';
 import { generate as shortid } from 'shortid';
 import * as WebSocket from 'ws';
@@ -37,9 +37,10 @@ export class FieldRef<
   R = any
 > {
   constructor(
-    public typeRef: T,
-    public key: string,
-    public meta?: M
+    readonly typeRef: T,
+    readonly key: string,
+    meta: M,
+    readonly definition: FieldDefinitionNode
   ) { }
 
   defineValue?: { (instance: TypeInstance): { (): R|Promise<R>|FieldResolver<R> } }
