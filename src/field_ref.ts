@@ -1,5 +1,5 @@
 import 'zone.js';
-import 'rxjs/add/operator/takeUntil';
+import 'rxjs/add/operator/map';
 
 import { Subscription } from 'rxjs/Subscription';
 import { GraphQLResolveInfo, GraphQLFieldResolver } from 'graphql';
@@ -7,13 +7,11 @@ import { Observable } from 'rxjs/Observable';
 import { generate as shortid } from 'shortid';
 import * as WebSocket from 'ws';
 
+import { FieldMeta } from './field';
 import { obsToAsyncIterator } from './obs-to-async-iterable';
-import { OperationRef } from './operation_ref';
-import { TypeInstance, TypeTarget } from './type';
+import { TypeInstance } from './type';
 import { TypeRef } from './type_ref';
-import { defineMetaKey, mapMeta, Meta } from './meta';
 
-export const FIELDS_META = Symbol('FIELDS_META');
 
 export interface FieldResolver<R = any, C = { [key: string]: any }> extends GraphQLFieldResolver<TypeInstance, C> {
   (
@@ -31,15 +29,6 @@ export interface FieldSubscriptionResolver<R = any, C = { [key: string]: any }> 
     context: any,
     info: GraphQLResolveInfo
   ): AsyncIterator<R>
-}
-
-export class FieldMeta {
-  constructor(
-    target: TypeTarget,
-    key: string,
-    params: { [key: string]: any },
-    public FieldRefClass: typeof FieldRef = FieldRef
-  ) { }
 }
 
 export class FieldRef<
@@ -92,20 +81,4 @@ export class FieldRef<
     if (!(fieldValue instanceof Observable)) throw new Error('fieldValue is not a observable');
     return obsToAsyncIterator(fieldValue.map(value => ({[this.key]: value})));
   }
-}
-
-export function decorateField(meta: { [key: string]: any }) {
-  return function fieldDecorator(target: any, key: string) {
-    const meta = new FieldMeta(target, key, {});
-    setFieldMeta(target, key, meta);
-  }
-}
-
-export function setFieldMeta(target: TypeTarget, key: string, meta: FieldMeta) {
-  if (!(meta instanceof FieldMeta)) throw new TypeError(`meta is not a instance of FieldMeta: ${target.name || typeof target}[${key}]`);
-  defineMetaKey(meta, FIELDS_META, target, key);
-}
-
-export function mapFieldMeta(target: any): Map<string, FieldMeta> {
-  return mapMeta(FIELDS_META, target);
 }

@@ -1,6 +1,7 @@
 import { Provider } from './di';
 import { TypeTarget } from './type';
 import { GrappRef } from './grapp_ref';
+import { Source } from 'graphql';
 export declare type GrappTarget = any;
 export interface GrappParams {
     imports?: GrappTarget[];
@@ -17,9 +18,8 @@ export declare class GrappMeta implements GrappParams {
     ctor: typeof GrappRef;
     imports: GrappTarget[];
     types: TypeTarget[];
-    operations: TypeTarget[];
     providers: Provider[];
-    schema?: string;
+    source?: Source;
     resolvers: {
         [key: string]: any;
     };

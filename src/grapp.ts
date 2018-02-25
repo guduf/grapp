@@ -17,11 +17,11 @@ export interface GrappParams {
 }
 
 export class GrappMeta implements GrappParams {
-  imports: GrappTarget[]
-  types: TypeTarget[]
-  providers: Provider[]
-  source?: Source
-  resolvers: { [key: string]: any }
+  readonly imports: GrappTarget[]
+  readonly types: TypeTarget[]
+  readonly providers: Provider[]
+  readonly source?: Source
+  readonly resolvers: { [key: string]: any }
 
   constructor(
     public target: GrappTarget,
@@ -32,7 +32,9 @@ export class GrappMeta implements GrappParams {
     this.providers = Array.isArray(params.providers) ? params.providers : [];
     this.types = Array.isArray(params.types) ? params.types : [];
     this.resolvers = params.resolvers ? params.resolvers : {};
-    this.source = new Source(params.schema, `@${this.target.name}`);
+    if (this.source) (
+     this.source = new Source(params.schema, `@${this.target.name}`)
+    );
   }
 }
 

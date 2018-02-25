@@ -17,22 +17,20 @@ import { GrappRef } from './grapp_ref';
 import { TypeInstance } from './type';
 import { TypeRef } from './type_ref';
 
-/**
- * Available parameters to bootstaping Grapp
- */
+/** Available parameters to bootstaping Grapp. */
 export interface GrappRootParams {
-  /** Additional providers injected before the boostraped grapps */
+  /** Additional providers injected before the boostraped grapps. */
   providers?: Provider[]
 }
 
 /**
- * Represents a unique instance created during bootstrap to initialize the grapps
+ * Represents a unique instance created during bootstrap to initialize the grapps.
  */
 export class GrappRoot {
   /**
-   * Initializes a Grapp root
-   * @param target The grapp target
-   * @param params The Grapp root parameters
+   * Initializes a Grapp root.
+   * @param target The grapp target.
+   * @param params The Grapp root parameters.
    */
   constructor(
     target: GrappTarget,

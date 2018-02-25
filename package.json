@@ -4,6 +4,7 @@
   "description": "node framework for graphql applications",
   "main": "lib/index.js",
   "scripts": {
+    "src:build": "tsc -p src/",
     "doc": "yarn doc:html && yarn doc:serve",
     "doc:build": "typedoc --out doc/ src/",
     "doc:serve": "http-server doc/",

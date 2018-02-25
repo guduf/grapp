@@ -35,7 +35,7 @@ export function obsToAsyncIterator<T = any>(obs: Observable<T>): AsyncIterator<T
     }
   };
 
-  return <AsyncIterator<any>>{
+  return {
     next(): Promise<IteratorResult<T>> {
       return listening ? pullValue() : this.return();
     },

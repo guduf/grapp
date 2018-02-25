@@ -3,6 +3,8 @@ import { TypeRef } from './type_ref';
 import { defineMeta, getMeta } from './meta';
 import { Source } from 'graphql';
 
+import { FieldMeta, mapFieldMeta } from './field';
+
 export type TypeTarget = any;
 
 export interface TypeInstance {
@@ -19,20 +21,28 @@ export interface TypeParams {
 export class TypeMeta implements TypeParams {
   constructor(
     public target: TypeTarget,
-    params: TypeParams,
-    public TypeRefClass: typeof TypeRef = TypeRef
+    {selector, providers, schema}: TypeParams = {},
+    readonly TypeRefClass: typeof TypeRef = TypeRef
   ) {
-    if (typeof params !== 'object') throw new TypeError('Params is not a object');
-    this.providers  = params.providers || [];
-    if (params.selector) this.selector = params.selector;
+    this.providers  = providers || [];
+    if (selector) this.selector = selector;
     else if (target.name) this.selector = target.name;
     else throw new Error('Selector is not defined');
-    if (params.schema) this.source = new Source(params.schema, `@${this.selector}`)
+    if (schema) this.source = new Source(schema, `@${this.selector}`);
+    const fields = mapFieldMeta(target) || new Map<string, FieldMeta>();
+    for (const key of Object.getOwnPropertyNames(target.prototype))
+      if (
+        !fields.has(key) &&
+        ['constructor'].indexOf(key) < 0 &&
+        key[0] !== '_'
+      ) fields.set(key, new FieldMeta(target, key, {}));
+    this.fields = fields;
   }
 
-  providers: Provider[];
-  selector: string;
-  source?: Source;
+  readonly fields: Map<string, FieldMeta>
+  readonly providers: Provider[];
+  readonly selector: string;
+  readonly source?: Source;
 }
 
 const TYPE_META = Symbol('TYPE_META');

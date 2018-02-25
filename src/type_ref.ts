@@ -1,14 +1,16 @@
 import { Injector } from './di';
-import { FieldRef, mapFieldMeta , FieldResolver} from './fields';
+import { FieldMeta, mapFieldMeta } from './field';
+import { FieldRef } from './field_ref';
 import { GrappRef } from './grapp_ref';
 import { getTypeMeta, TypeMeta, TypeTarget, TypeInstance } from './type';
 import { GrappRoot } from './root';
-import { ObjectTypeDefinitionNode } from 'graphql';
+import { ObjectTypeDefinitionNode, FieldDefinitionNode } from 'graphql';
 
 export const DOC_DATA = Symbol('DOC_DATA');
 
 export class TypeRef<I extends TypeInstance = TypeInstance, M extends TypeMeta = TypeMeta> {
-  fields: Map<string, FieldRef>;
+  readonly fields: Map<string, FieldRef>;
+  readonly injector: Injector;
 
   get root(): GrappRoot { return this.grappRef.root; }
   get selector(): string { return this.meta.selector; }
@@ -18,39 +20,12 @@ export class TypeRef<I extends TypeInstance = TypeInstance, M extends TypeMeta =
     public meta: M,
     definition: ObjectTypeDefinitionNode
   ) {
-    const providers = [...meta.providers];
-    const fields = new Map<string, FieldRef>();
-    const fieldsMeta = mapFieldMeta(meta.target);
-    const methodKeys = Object.getOwnPropertyNames(meta.target.prototype).filter(key => {
-      if (['constructor'].indexOf(key) >= 0) return false;
-      if (key[0] === '_') return false;
-      return true;
-    });
-    for (const key of methodKeys) {
-      let fieldRef: FieldRef;
-      try {
-        fieldRef = new FieldRef(this, key, meta.target.prototype[key]);
-      } catch (err) {
-        console.error(err);
-        throw new Error('Failed to reference Field: ' + key);
-      }
-      fields.set(key, fieldRef)
-    }
-    if (fieldsMeta) for (const [key, fieldMeta] of fieldsMeta) {
-      let fieldRef: FieldRef;
-      try {
-        fieldRef = new fieldMeta.FieldRefClass(this, key, fieldMeta);
-      } catch (err) {
-        console.error(err);
-        throw new Error('Failed to reference Field: ' + key);
-      }
-      fields.set(key, fieldRef);
-    }
-    this.fields = fields;
+    this.injector = this.grappRef.injector.resolveAndCreateChild([...meta.providers]);
+    this.fields = this._mapFieldDefinitions(definition.fields, meta.fields);
   }
 
   instanciate(payload: { [key: string]: any }): I {
-    const injector = this.grappRef.injector.resolveAndCreateChild([...this.meta.providers]);
+    const injector = this.injector.resolveAndCreateChild([...this.meta.providers]);
     const instance: I = injector.resolveAndInstantiate(this.meta.target);
     for (const [key, fieldRef] of this.fields) if (fieldRef.defineValue)
       Object.defineProperty(instance, key, {
@@ -59,5 +34,33 @@ export class TypeRef<I extends TypeInstance = TypeInstance, M extends TypeMeta =
         configurable: false
        });
     return instance;
+  }
+
+  private _mapFieldDefinitions(
+    definitions: FieldDefinitionNode[],
+    metaMap: Map<string, FieldMeta>
+  ): Map<string, FieldRef> {
+    const references = new Map<string, FieldRef>();
+    for (const definition of definitions) {
+      const key = definition.name.value;
+      const meta = metaMap.get(key);
+      if (!(meta instanceof TypeMeta)) throw new ReferenceError(
+        `Failed to get field meta for field key: ${key}`
+      );
+      if (references.has(meta.selector)) throw new ReferenceError(
+        `Duplicate meta field key: '${key}'`
+      )
+      let fieldRef: FieldRef;
+      try { fieldRef = new meta.FieldRefClass(this, key, meta); }
+      catch (catched) {
+        console.error(catched);
+        throw new Error(`Failed to instanciate field reference '${key}': ${catched.message}`);
+      }
+      if (!(fieldRef instanceof FieldRef)) throw new TypeError(
+        `Type reference with key '${key}' is not a instance of TypeRef`
+      );
+      references.set(key, fieldRef);
+    }
+    return references;
   }
 }
