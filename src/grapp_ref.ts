@@ -22,6 +22,8 @@ export class GrappRef<M extends GrappMeta = GrappMeta> {
   readonly injector: Injector
   /** The store of registred type references. */
   readonly typeRefs: MapsByTypeKind<TypeRef>
+  /** The name of the Grapp ref */
+  readonly name: string;
   /** The store of schema definitions nodes different than object type. */
   readonly nodes: Set<DefinitionNode>
   /** The store of schema definitions nodes different than object type. */
@@ -35,52 +37,66 @@ export class GrappRef<M extends GrappMeta = GrappMeta> {
     root: GrappRoot,
     meta: M
   ) {
+    if (!(root instanceof GrappRoot)) throw TypeError(
+      '(root) is not a instance of GrappRoot'
+    );
+    if (!(meta instanceof GrappMeta)) throw TypeError(
+      '(meta) is not a instance of GrappMeta'
+    );
+    this.name = meta.name;
     const typeRefs: MapsByTypeKind<TypeRef> = {};
     const nodes = new Set<DefinitionNode>();
     const resolvers = new Map<string, () => any>();
     for (const target of meta.imports) {
       const grappRef = root.importGrappRef(target);
       if (!grappRef) throw new ReferenceError(
-        `Failed to import grapp reference with the target: ${target.name || target}`
+        `Failed to import grapp reference with the target (${target.name || target})`
       );
-      for (const typeKind of ['query', 'mutation', 'subscription', 'type'])
+      for (const typeKind of ['query', 'mutation', 'subscription', 'type']) {
         if (grappRef.typeRefs[typeKind]) {
           if (!typeRefs[typeKind]) typeRefs[typeKind] = new Map();
-          for (const [selector, typeRef] of grappRef.typeRefs[typeKind])
-            typeRefs[typeKind].set(selector, typeRef);
+          for (const [selector, typeRef] of grappRef.typeRefs[typeKind]) {
+            if (typeRefs[typeKind].has(selector)) {
+              if (typeRefs[typeKind].get(selector) !== typeRef) throw new ReferenceError(
+                `Conflict between two different type references with selector '${selector}'`
+              );
+            }
+            else typeRefs[typeKind].set(selector, typeRef);
+          }
         }
-      if (grappRef.nodes)
-        for (const node of grappRef.nodes) nodes.add(node);
-      if (grappRef.resolvers)
-        for (const key of Object.keys(grappRef.resolvers)) (
-          resolvers[key] = grappRef.resolvers[key]
-        );
+      }
+      if (grappRef.nodes) for (const node of grappRef.nodes) nodes.add(node);
+      if (grappRef.resolvers) for (const key of Object.keys(grappRef.resolvers)) (
+        resolvers[key] = grappRef.resolvers[key]
+      );
     }
     this.injector = root.injector.resolveAndCreateChild([...meta.providers]);
-    if (meta.resolvers)
-      for (const key of Object.keys(meta.resolvers)) (
-        resolvers[key] = meta.resolvers[key]
-      );
+    if (meta.resolvers) for (const key of Object.keys(meta.resolvers)) (
+      resolvers[key] = meta.resolvers[key]
+    );
     const {metaMap, sources} = parseGrappMeta(meta);
     const {definitions, nodes: ownNodes} = parseSchemaSource(...sources);
     for (const node of ownNodes) nodes.add(node);
     const ownTypeRefs = this._mapTypeDefinitions(definitions, metaMap);
-    for (const typeKind of ['query', 'mutation', 'subscription', 'type'])
+    for (const typeKind of ['query', 'mutation', 'subscription', 'type']) {
       if (ownTypeRefs[typeKind]) {
         if (!typeRefs[typeKind]) typeRefs[typeKind] = new Map();
-        for (const [selector, typeRef] of ownTypeRefs[typeKind])
+        for (const [selector, typeRef] of ownTypeRefs[typeKind]) {
           typeRefs[typeKind].set(selector, typeRef);
+        }
       }
+    }
+    this.nodes = nodes;
+    this.resolvers = resolvers;
     this.typeRefs = typeRefs;
   }
 
   build(): GraphQLSchema {
     const resolvers = {...this.resolvers};
     const definitions: DefinitionNode[] = Array.from(this.nodes);
-    if (this.typeRefs.type)
-      for (const [selector, typeRef] of this.typeRefs.type) {
-        definitions.push(typeRef.definition);
-      }
+    if (this.typeRefs.type) {
+      for (const [, typeRef] of this.typeRefs.type) definitions.push(typeRef.definition);
+    }
     for (const typeKind of ['query', 'mutation', 'subscription']) {
       if (this.typeRefs[typeKind]) {
         const typeRefMap: Map<string, TypeRef> = this.typeRefs[typeKind];
@@ -89,10 +105,11 @@ export class GrappRef<M extends GrappMeta = GrappMeta> {
           name: {kind: 'Name', value: capitalize(typeKind)},
           fields: []
         };
-        for (const [selector, typeRef] of this.typeRefs[typeKind])
+        for (const [selector, typeRef] of this.typeRefs[typeKind]) {
           for (const [key, fieldRef] of typeRef.fields) {
             definition.fields.push(fieldRef.definition)
           }
+        }
         definitions.push(definition);
       }
     }
@@ -112,7 +129,7 @@ export class GrappRef<M extends GrappMeta = GrappMeta> {
    * @param metaMap A selector map with type meta as v
    * @returns A object references maps by type kind
    */
-  private _mapTypeDefinitions(
+  protected _mapTypeDefinitions(
     definitions: MapsByTypeKind<ObjectTypeDefinitionNode>,
     metaMap: Map<string, TypeMeta>
   ): MapsByTypeKind<TypeRef> {
@@ -128,7 +145,9 @@ export class GrappRef<M extends GrappMeta = GrappMeta> {
         try { typeRef = new meta.TypeRefClass(this, meta, definition); }
         catch (catched) {
           console.error(catched);
-          throw new Error(`Failed to instanciate type ref '${selector}': ${catched.message}`);
+          throw new Error(
+            `Failed to instanciate type reference '${selector}': ${catched.message}`
+          );
         }
         if (!(typeRef instanceof TypeRef)) throw new TypeError(
           `Type reference with selector '${selector}' is not a instance of TypeRef`
@@ -161,11 +180,11 @@ export function parseGrappMeta(meta: GrappMeta): {
   if (meta.source) sources.push(meta.source);
   for (const typeTarget of meta.types) {
     const meta = getTypeMeta(typeTarget);
-    if (!(meta instanceof TypeMeta)) throw new ReferenceError(
-      `Failed to get type meta for type target: ${typeTarget.name || typeTarget}`
+    if (!meta) throw new ReferenceError(
+      `Failed to get type meta for type target (${typeTarget.name || typeTarget})`
     );
     if (metaMap.has(meta.selector)) throw new ReferenceError(
-      `Duplicate meta type selector: '${meta.selector}'`
+      `Duplicate meta type selector '${meta.selector}'`
     )
     metaMap.set(meta.selector, meta);
     if (meta.source) sources.push(meta.source);
@@ -181,7 +200,7 @@ export function parseSchemaSource(...sources: SchemaSource[]): {
   definitions: MapsByTypeKind<ObjectTypeDefinitionNode>
   nodes: Set<DefinitionNode>
 } {
-  const definitions = {};
+  const definitions: MapsByTypeKind<ObjectTypeDefinitionNode> = {};
   const nodes = new Set<DefinitionNode>();
   for (const source of sources) {
     let document: DocumentNode;
@@ -195,17 +214,19 @@ export function parseSchemaSource(...sources: SchemaSource[]): {
       else {
         const name = definition.name.value;
         const OPERATIONS_TYPES = ['query', 'mutation', 'subscription', 'type'];
-        for (const operationType of OPERATIONS_TYPES) {
-          if (operationType === 'type')
-            if (definitions['type'].has(name)) throw new ReferenceError(name);
-            else definitions['type'].set(name, definition);
-          if (name.match(new RegExp(`/\w+${capitalize(operationType)}$/`))) {
-            if (!definitions[operationType]) (definitions[operationType] = new Map());
-            if (!definitions[operationType].has(name)) throw new ReferenceError(name);
-            definitions[operationType].set(name, definition);
+        let operationType: string;
+        for (const target of OPERATIONS_TYPES) {
+          if (target === 'type') operationType = 'type';
+          else if (name.match(new RegExp(`\\w+${capitalize(target)}$`))) {
+            operationType = target;
             break;
           }
         }
+        if (!definitions[operationType]) (definitions[operationType] = new Map());
+        if (definitions[operationType].has(name)) throw new ReferenceError(
+          `Duplicate ${operationType} name '${name}'`
+        );
+        definitions[operationType].set(name, definition);
       }
     }
   }

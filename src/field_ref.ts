@@ -8,7 +8,7 @@ import { generate as shortid } from 'shortid';
 import * as WebSocket from 'ws';
 
 import { FieldMeta } from './field';
-import { obsToAsyncIterator } from './obs-to-async-iterable';
+import { obsToAsyncIterator } from './utils';
 import { TypeInstance } from './type';
 import { TypeRef } from './type_ref';
 

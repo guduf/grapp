@@ -14,7 +14,7 @@ describe('root.ts', () => {
   }
 
   @decorateGrapp({
-    operations: [HelloWorldQuery],
+    types: [HelloWorldQuery],
     schema: 'type Query { helloWorld: String! }'
   })
   class HelloWorldGrapp { }

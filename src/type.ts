@@ -48,13 +48,15 @@ export class TypeMeta implements TypeParams {
 const TYPE_META = Symbol('TYPE_META');
 
 export function decorateType(params: TypeParams = {}): ClassDecorator {
-  return function docDecorator(target: TypeTarget) {
+  return function typeDecorator(target: TypeTarget) {
     setTypeMeta(target, new TypeMeta(target, params));
   }
 }
 
 export function setTypeMeta(target: TypeTarget, meta: TypeMeta) {
-  if (!(meta instanceof TypeMeta)) throw new TypeError(`meta is not a instance of TypeMeta: ${target.name || typeof target}`);
+  if (!(meta instanceof TypeMeta)) throw new TypeError(
+    `(${target.name || target}) is not a instance of TypeMeta`
+  );
   Injectable()(target);
   defineMeta(meta, TYPE_META, target);
 }

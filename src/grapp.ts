@@ -10,7 +10,7 @@ export type GrappTarget = any;
 export interface GrappParams {
   imports?: GrappTarget[]
   types?: TypeTarget[]
-  operations?: TypeTarget[]
+  name?: string;
   providers?: Provider[]
   schema?: string
   resolvers?: { [key: string]: any }
@@ -18,22 +18,26 @@ export interface GrappParams {
 
 export class GrappMeta implements GrappParams {
   readonly imports: GrappTarget[]
+  readonly name: string;
   readonly types: TypeTarget[]
   readonly providers: Provider[]
   readonly source?: Source
   readonly resolvers: { [key: string]: any }
 
   constructor(
-    public target: GrappTarget,
-    params: GrappParams,
-    public ctor: typeof GrappRef = GrappRef
+    readonly target: GrappTarget,
+    {imports, name, providers, resolvers, schema, types}: GrappParams = {},
+    readonly ctor: typeof GrappRef = GrappRef
   ) {
-    this.imports = Array.isArray(params.imports) ? params.imports : [];
-    this.providers = Array.isArray(params.providers) ? params.providers : [];
-    this.types = Array.isArray(params.types) ? params.types : [];
-    this.resolvers = params.resolvers ? params.resolvers : {};
-    if (this.source) (
-     this.source = new Source(params.schema, `@${this.target.name}`)
+    if (name) this.name = name;
+    else if (target.name) this.name = target.name;
+    else throw new Error('Name is not defined');
+    this.imports = Array.isArray(imports) ? imports : [];
+    this.providers = Array.isArray(providers) ? providers : [];
+    this.types = Array.isArray(types) ? types : [];
+    this.resolvers = resolvers ? resolvers : {};
+    if (schema) (
+     this.source = new Source(schema, `@${this.name}`)
     );
   }
 }

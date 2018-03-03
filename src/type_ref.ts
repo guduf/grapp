@@ -19,7 +19,7 @@ export class TypeRef<I extends TypeInstance = TypeInstance, M extends TypeMeta =
     meta: M,
     readonly definition: ObjectTypeDefinitionNode
   ) {
-    this.injector = this.injector.resolveAndCreateChild([...meta.providers]);
+    this.injector = grappRef.injector.resolveAndCreateChild([...meta.providers]);
     this.fields = this._mapFieldDefinitions(definition.fields, meta.fields);
     this.selector = meta.selector;
   }
@@ -43,10 +43,10 @@ export class TypeRef<I extends TypeInstance = TypeInstance, M extends TypeMeta =
     for (const definition of definitions) {
       const key = definition.name.value;
       const meta = metaMap.get(key);
-      if (!(meta instanceof TypeMeta)) throw new ReferenceError(
+      if (!(meta instanceof FieldMeta)) throw new ReferenceError(
         `Failed to get field meta for field key: ${key}`
       );
-      if (references.has(meta.selector)) throw new ReferenceError(
+      if (references.has(key)) throw new ReferenceError(
         `Duplicate meta field key: '${key}'`
       )
       let fieldRef: FieldRef;
